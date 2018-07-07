@@ -5,6 +5,10 @@ on the simple TD (temporal difference) algorithm described in Chapter 1 of the
 [draft 2nd edition](www.incompleteideas.net/book/bookdraft2017nov5.pdf) of Sutton 
 and Barto's book Reinforcement Learning: An Introduction.
 
+Value update method:
+
+V (s) ← V (s) + α􏰜[V (s′) − V (s)􏰝]
+
 Classes defined in `gamelearner.py`:
 
 - `TicTacToeGame` - the game dynamics
@@ -17,7 +21,7 @@ Not implemented yet:
 
 ### Example usage
 
-```Python
+```
 >>> from gamelearner import *
 >>> game = TicTacToeGame()
 >>> players = [HumanPlayer("Joe"), TDLearner("TD")]
@@ -108,3 +112,20 @@ _ _ _
 _ _ _
 Joe's turn (row, col): 
 ```
+
+### Human-only play
+
+If you want to play a game between two humans, call `game_with_2_humans()` as follows:
+
+```
+>>> from gamelearner import *
+>>> game_with_2_humans(["Jack", "Jill"], move_first=0)
+
+Game of Tic Tac Toe with 2 players ['Jack', 'Jill']
+_ _ _
+_ _ _
+_ _ _
+Jack's turn (row, col):
+```
+
+If `move_first` is not specified, the player to start the game is chosen randomly.

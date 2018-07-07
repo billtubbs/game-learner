@@ -203,7 +203,7 @@ class TicTacToeGame:
         if show:
             print("Last move reversed")
         self.check_if_game_over()
-        self.turn = next(self.player_iterator)  # Only works for 2 player games!
+        self.turn = next(self.player_iterator)  # TODO: Only works for 2 player games!
 
     def show_moves(self):
         """Show a list of the moves made.
@@ -303,13 +303,16 @@ class HumanPlayer(Player):
 
 
 class TDLearner(Player):
-    def __init__(self, name, learning_rate=0.5):
+    def __init__(self, name, learning_rate=0.5, off_policy_rate=0.1,
+                 value_function=None):
 
         super().__init__(name)
 
-        self.value_function = {}
-        self.off_policy_rate = 0.1
+        if value_function is None:
+            value_function = {}
+        self.value_function = value_function
         self.learning_rate = learning_rate
+        self.off_policy_rate = off_policy_rate
         self.previous_state = None
 
     def decide_next_move(self, game, role, show=False):
@@ -358,6 +361,12 @@ class TDLearner(Player):
                 self.value_function[key] = 1.0
             else:
                 self.value_function[self.previous_state] = 0.0
+
+    def copy(self, name):
+
+        return TDLearner(name=name, learning_rate=self.learning_rate,
+                         off_policy_rate=self.off_policy_rate,
+                         value_function=self.value_function)
 
     def __repr__(self):
 
@@ -639,7 +648,7 @@ def looped_games(players):
     print("Results:")
     for player in players:
         items = (player.name, player.games_won, player.games_played)
-        print("Player %s has won %d of %d games" % items)
+        print("Player %s won %d of %d games" % items)
 
 
 def main():
@@ -667,6 +676,9 @@ def main():
         text = input("Press enter to do more training or q to quit: ")
         if text.lower() == 'q':
             break
+
+        computer_players = [best_player.copy("TD%02d" % i) for i in range(n)]
+        print("%d clones of %s made" % (n-1, str(best_player)))
 
 
 if __name__ == "__main__":

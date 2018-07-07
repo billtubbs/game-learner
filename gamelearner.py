@@ -414,7 +414,7 @@ def generate_state_key(game, state, role):
     return np.array(chars, dtype='a')[state].tostring()
 
 
-class ProgrammedPlayer(Player):
+class ExpertPlayer(Player):
     def __init__(self, name, show=False):
 
         super().__init__(name, show)

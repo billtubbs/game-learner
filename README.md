@@ -1,7 +1,7 @@
 # game-learner
 
-Demonstration TD Learning algorithm on Tic Tac Toe game (Noughts and Crosses) based 
-on the simple TD (temporal difference) algorithm described in Chapter X of the
+Demonstration of a TD Learning algorithm learning to play the game [Tic Tac Toe (Noughts and Crosses)](https://en.wikipedia.org/wiki/Tic-tac-toe) based 
+on the simple TD (temporal difference) algorithm described in Chapter 1 of the
 [draft 2nd edition](www.incompleteideas.net/book/bookdraft2017nov5.pdf) of Sutton 
 and Barto's book Reinforcement Learning: An Introduction.
 

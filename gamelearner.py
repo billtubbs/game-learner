@@ -11,6 +11,7 @@ crosses).
 # - Allow alternative start player rather than random
 # - Currently game.reset() will confuse TDLearner.
 #   Solution: Have TDLearner get previous move from game.
+# - Check use of game help text in TicTacToe
 
 
 import numpy as np
@@ -212,32 +213,50 @@ class TicTacToeGame:
         for i, move in enumerate(self.moves, start=1):
             print(i, move)
 
+    def check_game_state(self, state):
+        """Check the game state provided to see whether someone
+        has won or if it is draw.
+
+        Args:
+            state (np.array): If not None, check if this game state
+                array is a game-over state, otherwise check the
+                actual game state (self.state).
+
+        returns:
+            game_over, winner (bool, bool): If there is a winner,
+                winner will be the winning role. If the game is over,
+                game_over will be True.
+        """
+
+        game_over, winner = False, None
+
+        if np.sum(self.state == 0) == 0:
+            game_over = True
+        else:
+            for role in self.roles:
+                positions = (state == role)
+                if any((
+                        np.any(positions.sum(axis=0) == 3),
+                        np.any(positions.sum(axis=1) == 3),
+                        (np.diagonal(positions).sum() == 3),
+                        (np.diagonal(np.fliplr(positions)).sum() == 3)
+                )):
+                    game_over, winner = True, role
+                    break
+
+        return game_over, winner
+
     def check_if_game_over(self):
         """Check to see whether someone has won or if it is draw. 
-        If there is a winner, the attribute winner will be set 
-        to the winning player. If the game is over, game_over will
-        be set to True.
+        If the game is over, game_over will be set to True.
+        If there is a winner, the attribute winner will be set
+        to the winning role.
         
         Returns:
             True if there is a winner else False.
         """
 
-        self.winner = None
-        self.game_over = False
-
-        for role in self.roles:
-            moves = (self.state == role)
-            if any((
-                    np.any(moves.sum(axis=0) == 3),
-                    np.any(moves.sum(axis=1) == 3),
-                    (np.diagonal(moves).sum() == 3),
-                    (np.diagonal(np.fliplr(moves)).sum() == 3)
-            )):
-                self.winner = role
-                self.game_over = True
-
-        if np.sum(self.state == 0) == 0:
-            self.game_over = True
+        self.game_over, self.winner = self.check_game_state(self.state)
 
         return self.game_over
 

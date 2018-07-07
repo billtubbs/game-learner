@@ -12,6 +12,7 @@ crosses).
 # - Currently game.reset() will confuse TDLearner.
 #   Solution: Have TDLearner get previous move from game.
 # - Check use of game help text in TicTacToe
+# - HumanPlayer - entering '1.1' should not be accepted
 
 
 import numpy as np
@@ -145,21 +146,23 @@ class TicTacToeGame:
             move (tuple): Tuple of length 2 containing the player role
                           and the move (role, position). Position is also a
                           tuple (row, col).
+
+        Raises:
+            ValueError if the position is out of bounds or if
+            there is already a move in that position.
+
+        Note: This method does not check if the move is valid
+        (i.e. if it is the players turn).
         """
 
         role, position = move
 
         assert 0 <= position[0] < self.size[0]
         assert 0 <= position[1] < self.size[1]
-        assert self.winner is None, "Player %s has already won" % str(self.winner)
-
         if state[position] != 0:
             raise ValueError("There is already a move in that position.")
 
-        if self.turn != role:
-            raise ValueError("It is not player %d's turn." % role)
-
-        state[position] = self.turn
+        state[position] = role
 
     def next_state(self, move):
         """Returns the future state of the game if move were to
@@ -186,9 +189,15 @@ class TicTacToeGame:
             show (bool): Print a message if True.
         """
 
+        assert self.winner is None, "Player %s has already won" % str(self.winner)
+
+        role, position = move
+        if self.turn != role:
+            raise ValueError("It is not player %d's turn." % role)
+
         self.update_state(self.state, move)
         if show:
-            print("Player %s made move %s" % (str(move[0]), str(move[1])))
+            print("Player %s made move %s" % (str(role), str(position)))
         self.moves.append(move)
         self.check_if_game_over()
         if self.game_over:
@@ -436,24 +445,52 @@ def generate_state_key(game, state, role):
 class ExpertPlayer(Player):
     def __init__(self, name, show=False):
 
-        super().__init__(name, show)
+        super().__init__(name)
+
+    def winning_positions(self, game, role, available_positions):
+        """
+        Returns list of positions (row, col) that would result
+        in player role winning.
+
+        Args:
+            game (Game): Game that is being played
+            role (object): Role that the player is playing (could
+                           be int or str depending on game)
+            available_positions (list): List of positions to search.
+
+        Returns:
+            positions (list):
+
+        """
+
+        positions = []
+        for position in available_positions:
+            next_state = game.next_state((role, position))
+            game_over, winner = game.check_game_state(next_state)
+            if winner == role:
+                positions.append(position)
+
+        return positions
 
     def decide_next_move(self, game, role, show=False):
 
         move_format = game.help_text['move format']
-        possible_moves = {role: [] for role in game.roles}
-        for role in game.roles:
-            player_moves = (game.state == role)
-            a0 = player_moves.sum(axis=0) == 2
-            if np.any(a0):
-                pass
-                # for i in np.where(a0 == True)[0].tolist():
-                #    np.where(a[i] == True)[0].tolist()
-                #    possible_moves[role].append((i,))
-            a1 = np.any(player_moves.sum(axis=1) == 2)
-            d0 = np.diagonal(player_moves).sum() == 2
-            d1 = np.diagonal(np.fliplr(player_moves)).sum() == 2
-            move = NotImplementedError
+        available_positions = game.available_positions()
+
+        # 1. Check for winning moves
+        positions = self.winning_positions(game, role, available_positions)
+        if positions:
+            move = (role, random.choice(positions))
+        else:
+
+            # 2. Check for blocking moves
+            opponent = game.roles[(game.roles.index(game.turn) ^ 1)]
+            positions = self.winning_positions(game, opponent, available_positions)
+
+            if positions:
+                move = (role, random.choice(positions))
+            else:
+                move = (role, random.choice(available_positions))
 
         if show:
             print("%s's turn (%s): %s" % (self.name, move_format, str(move)))
@@ -462,7 +499,7 @@ class ExpertPlayer(Player):
 
     def __repr__(self):
 
-        return "TDLearner(%s, %d)" % (self.name, self.n_players)
+        return "ExpertPlayer(%s)" % self.name.__repr__()
 
 
 class GameController:
@@ -512,7 +549,12 @@ class GameController:
         for player in self.players:
             player.feedback(self.game, self.player_roles[player], show=show)
         if show:
-            self.game.show_state()
+            self.announce_result()
+
+    def announce_result(self):
+
+        self.game.show_state()
+        if self.game.game_over:
             print("Game over!")
             if self.game.winner:
                 print("%s won" % self.players_by_role[self.game.winner].name)

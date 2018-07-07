@@ -112,3 +112,20 @@ _ _ _
 _ _ _
 Joe's turn (row, col): 
 ```
+
+### Human-only play
+
+If you want to play a game between two humans, call `game_with_2_humans()` as follows:
+
+```
+>>> from gamelearner import *
+>>> game_with_2_humans(["Jack", "Jill"], move_first=0)
+
+Game of Tic Tac Toe with 2 players ['Jack', 'Jill']
+_ _ _
+_ _ _
+_ _ _
+Jack's turn (row, col):
+```
+
+If `move_first` is not specified, the player to start the game is chosen randomly.

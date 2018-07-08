@@ -19,6 +19,7 @@ import numpy as np
 import itertools
 import random
 import datetime
+import pickle
 from ast import literal_eval
 
 
@@ -69,6 +70,24 @@ class Player:
             self.games_won += 1
         if game.winner is not None:
             self.games_lost += 1
+
+    def save(self, filename=None):
+        """
+        Saves the player's current state as a pickle file. To reload a saved
+        player use:
+
+        >>> import pickle
+        >>> my_player = pickle.load(open('Player 1.pkl', 'rb'))
+
+        Args:
+            filename (str): filename to use. If not provided, creates
+                            filename from self.name.  E.g. 'Player 1.pkl'
+        """
+
+        if filename is None:
+            filename = self.name + 'pkl'
+
+        pickle.dump(self, open(filename, 'wb'))
 
     def __repr__(self):
 
@@ -381,27 +400,37 @@ class TDLearner(Player):
         if len(available_positions) is 0:
             raise ValueError("There are no possible moves.")
 
-        move_values = []
-        for position in available_positions:
+        elif random.random() < self.off_policy_rate:
+            # Random off-policy move
+            position = random.choice(available_positions)
             next_state = game.next_state((role, position))
             key = generate_state_key(game, next_state, role)
-            value = self.value_function.get(key, None)
-            if value is None:
-                value = default_value
-                self.value_function[key] = value
-            move_values.append((value, position, key))
+            if self.value_function.get(key, None) is None:
+                self.value_function[key] = default_value
 
-        max_value = max(move_values)[0]
-        best_moves = [move for move in move_values if move[0] == max_value]
-        value, position, key = random.choice(best_moves)
+        else:
+            # On-policy learning
+            move_values = []
+            for position in available_positions:
+                next_state = game.next_state((role, position))
+                key = generate_state_key(game, next_state, role)
+                value = self.value_function.get(key, None)
+                if value is None:
+                    value = default_value
+                    self.value_function[key] = value
+                move_values.append((value, position, key))
 
-        # Update value function
-        if game in self.previous_states:
-            previous_key = self.previous_states[game]
-            self.value_function[previous_key] = (
-                (1 - self.learning_rate) * self.value_function[previous_key] +
-                self.learning_rate * value
-            )
+            max_value = max(move_values)[0]
+            best_moves = [move for move in move_values if move[0] == max_value]
+            value, position, key = random.choice(best_moves)
+
+            # Update value function (only if on-policy)
+            if game in self.previous_states:
+                previous_key = self.previous_states[game]
+                self.value_function[previous_key] = (
+                    (1 - self.learning_rate) * self.value_function[previous_key] +
+                    self.learning_rate * value
+                )
 
         self.previous_states[game] = key
 

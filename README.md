@@ -129,7 +129,7 @@ EXPERT: 736
 Draws: 258
 TD1: 6
 
-In [18]: train_computer_players(computer_players)
+>>> train_computer_players(computer_players)
 
 Training 2 computer players...
 0 games completed

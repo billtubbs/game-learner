@@ -66,10 +66,10 @@ class Player:
 
         if game.game_over:
             self.games_played += 1
-        if game.winner == role:
-            self.games_won += 1
-        if game.winner is not None:
-            self.games_lost += 1
+            if game.winner == role:
+                self.games_won += 1
+            elif game.winner is not None:
+                self.games_lost += 1
 
     def save(self, filename=None):
         """

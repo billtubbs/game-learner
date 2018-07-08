@@ -15,9 +15,7 @@ Classes defined in `gamelearner.py`:
 - `HumanPlayer` - an interface to allow humans to play a game
 - `TDLearner` - A simple TD learning algorithm that learns to play from experience
 - `GameController` - controls a game between two players
-
-Not implemented yet:
-- `ExpertPlayer`
+- `ExpertPlayer` - Computer algorithm to play optimally - should be unbeatable [according to wikipedia](https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy)
 
 ### Example usage
 

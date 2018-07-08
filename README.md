@@ -13,9 +13,9 @@ Classes defined in `gamelearner.py`:
 
 - `TicTacToeGame` - the game dynamics
 - `HumanPlayer` - an interface to allow humans to play a game
-- `TDLearner` - A simple TD learning algorithm that learns to play from experience
+- `TDLearner` - a simple TD learning algorithm that learns to play from experience
 - `GameController` - controls a game between two players
-- `ExpertPlayer` - Computer algorithm to play optimally - should be unbeatable [according to wikipedia](https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy)
+- `ExpertPlayer` - computer algorithm to play optimally - should be unbeatable [according to wikipedia](https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy)
 
 ### Example usage
 
@@ -24,43 +24,35 @@ Classes defined in `gamelearner.py`:
 >>> game = TicTacToeGame()
 >>> players = [HumanPlayer("Joe"), TDLearner("TD")]
 >>> ctrl = GameController(game, players)
->>> ctrl.play(show=True)
+>>> ctrl.play()
 _ _ _
 _ _ _
 _ _ _
-TD's turn (row, col): (2, 1)
+TD's turn (row, col): (2, 0)
 _ _ _
 _ _ _
-_ X _
-Joe's turn (row, col): 2,0
-_ _ _
-_ _ _
-O X _
-TD's turn (row, col): (0, 2)
-_ _ X
-_ _ _
-O X _
-Joe's turn (row, col): 1,1
-_ _ X
-_ O _
-O X _
-TD's turn (row, col): (1, 2)
-_ _ X
-_ O X
-O X _
-Joe's turn (row, col): 2,2
-_ _ X
-_ O X
-O X O
-TD's turn (row, col): (1, 0)
-_ _ X
-X O X
-O X O
+X _ _
 Joe's turn (row, col): 0,0
+O _ _
+_ _ _
+X _ _
+TD's turn (row, col): (0, 2)
+O _ X
+_ _ _
+X _ _
+Joe's turn (row, col): 1,1
+O _ X
+_ O _
+X _ _
+TD's turn (row, col): (1, 2)
+O _ X
+_ O X
+X _ _
+Joe's turn (row, col): 2,2
 Joe you won!
 O _ X
-X O X
-O X O
+_ O X
+X _ O
 Game over!
 Joe won
 ```

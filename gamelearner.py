@@ -245,7 +245,7 @@ class TicTacToeGame:
         for i, move in enumerate(self.moves, start=1):
             print(i, move)
 
-    def check_game_state(self, state):
+    def check_game_state(self, state=None):
         """Check the game state provided to see whether someone
         has won or if it is draw.
 
@@ -262,19 +262,22 @@ class TicTacToeGame:
 
         game_over, winner = False, None
 
-        if np.sum(self.state == 0) == 0:
+        if state is None:
+            state = self.state
+
+        for role in self.roles:
+            positions = (state == role)
+            if any((
+                    np.any(positions.sum(axis=0) == 3),
+                    np.any(positions.sum(axis=1) == 3),
+                    (np.diagonal(positions).sum() == 3),
+                    (np.diagonal(np.fliplr(positions)).sum() == 3)
+            )):
+                game_over, winner = True, role
+                break
+
+        if np.sum(state == 0) == 0:
             game_over = True
-        else:
-            for role in self.roles:
-                positions = (state == role)
-                if any((
-                        np.any(positions.sum(axis=0) == 3),
-                        np.any(positions.sum(axis=1) == 3),
-                        (np.diagonal(positions).sum() == 3),
-                        (np.diagonal(np.fliplr(positions)).sum() == 3)
-                )):
-                    game_over, winner = True, role
-                    break
 
         return game_over, winner
 
@@ -288,7 +291,7 @@ class TicTacToeGame:
             True if there is a winner else False.
         """
 
-        self.game_over, self.winner = self.check_game_state(self.state)
+        self.game_over, self.winner = self.check_game_state()
 
         return self.game_over
 

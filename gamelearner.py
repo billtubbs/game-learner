@@ -379,7 +379,7 @@ class HumanPlayer(Player):
 
 class TDLearner(Player):
 
-    def __init__(self, name, learning_rate=0.5, off_policy_rate=0.1,
+    def __init__(self, name, learning_rate=0.25, off_policy_rate=0.0,
                  value_function=None):
 
         super().__init__(name)
@@ -806,7 +806,7 @@ def game_with_2_players(players, move_first=None, show=True):
     ctrl.play(show=show)
 
 
-def train_computer_players(players, iterations=1000):
+def train_computer_players(players, iterations=1000, show=True):
     """Play repeated games with n computer players then
     play against one of them.
 
@@ -818,7 +818,8 @@ def train_computer_players(players, iterations=1000):
     n_players = len(TicTacToeGame.roles)
     stats = {}
 
-    print("\nTraining %d computer players..." % len(players))
+    if show:
+        print("\nTraining %d computer players..." % len(players))
     for i in range(iterations):
         game = TicTacToeGame()
         selected_players = random.sample(players, n_players)
@@ -831,12 +832,14 @@ def train_computer_players(players, iterations=1000):
         else:
             # print("Draw")
             stats["Draws"] = stats.get("Draws", 0) + 1
-        if i % 100 == 0:
-            print(i, "games completed")
+        if show:
+            if i % 100 == 0:
+                print(i, "games completed")
 
-    print("\nResults:")
-    for p, count in stats.items():
-        print("%s: %d" % (p if p == "Draws" else p.name, count))
+    if show:
+        print("\nResults:")
+        for p, count in stats.items():
+            print("%s: %d" % (p if p == "Draws" else p.name, count))
 
 
 def looped_games(players):

@@ -13,11 +13,9 @@ Classes defined in `gamelearner.py`:
 
 - `TicTacToeGame` - the game dynamics
 - `HumanPlayer` - an interface to allow humans to play a game
-- `TDLearner` - A simple TD learning algorithm that learns to play from experience
+- `TDLearner` - a simple TD learning algorithm that learns to play from experience
 - `GameController` - controls a game between two players
-
-Not implemented yet:
-- `ExpertPlayer`
+- `ExpertPlayer` - computer algorithm to play optimally - should be unbeatable [according to wikipedia](https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy)
 
 ### Example usage
 
@@ -26,43 +24,35 @@ Not implemented yet:
 >>> game = TicTacToeGame()
 >>> players = [HumanPlayer("Joe"), TDLearner("TD")]
 >>> ctrl = GameController(game, players)
->>> ctrl.play(show=True)
+>>> ctrl.play()
 _ _ _
 _ _ _
 _ _ _
-TD's turn (row, col): (2, 1)
+TD's turn (row, col): (2, 0)
 _ _ _
 _ _ _
-_ X _
-Joe's turn (row, col): 2,0
-_ _ _
-_ _ _
-O X _
-TD's turn (row, col): (0, 2)
-_ _ X
-_ _ _
-O X _
-Joe's turn (row, col): 1,1
-_ _ X
-_ O _
-O X _
-TD's turn (row, col): (1, 2)
-_ _ X
-_ O X
-O X _
-Joe's turn (row, col): 2,2
-_ _ X
-_ O X
-O X O
-TD's turn (row, col): (1, 0)
-_ _ X
-X O X
-O X O
+X _ _
 Joe's turn (row, col): 0,0
+O _ _
+_ _ _
+X _ _
+TD's turn (row, col): (0, 2)
+O _ X
+_ _ _
+X _ _
+Joe's turn (row, col): 1,1
+O _ X
+_ O _
+X _ _
+TD's turn (row, col): (1, 2)
+O _ X
+_ O X
+X _ _
+Joe's turn (row, col): 2,2
 Joe you won!
 O _ X
-X O X
-O X O
+_ O X
+X _ O
 Game over!
 Joe won
 ```
@@ -111,6 +101,51 @@ _ _ _
 _ _ _
 _ _ _
 Joe's turn (row, col): 
+```
+
+### Training with an expert
+
+To use the expert player to train a TD Learner player you can use this function:
+
+```
+>>> computer_players = [TDLearner("TD1"), ExpertPlayer("EXPERT")]
+>>> train_computer_players(computer_players)
+
+Training 2 computer players...
+0 games completed
+100 games completed
+200 games completed
+300 games completed
+400 games completed
+500 games completed
+600 games completed
+700 games completed
+800 games completed
+900 games completed
+
+Results:
+EXPERT: 769
+Draws: 228
+TD1: 3
+
+>>> train_computer_players(computer_players)
+
+Training 2 computer players...
+0 games completed
+100 games completed
+200 games completed
+300 games completed
+400 games completed
+500 games completed
+600 games completed
+700 games completed
+800 games completed
+900 games completed
+
+Results:
+Draws: 497
+EXPERT: 497
+TD1: 6
 ```
 
 ### Human-only play

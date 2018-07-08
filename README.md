@@ -103,6 +103,51 @@ _ _ _
 Joe's turn (row, col): 
 ```
 
+### Training with an expert
+
+To use the expert player to train a TD Learner player you can use this function:
+
+```
+>>> computer_players = [TDLearner("TD1"), ExpertPlayer("EXPERT")]
+>>> train_computer_players(computer_players)
+
+Training 2 computer players...
+0 games completed
+100 games completed
+200 games completed
+300 games completed
+400 games completed
+500 games completed
+600 games completed
+700 games completed
+800 games completed
+900 games completed
+
+Results:
+EXPERT: 769
+Draws: 228
+TD1: 3
+
+>>> train_computer_players(computer_players)
+
+Training 2 computer players...
+0 games completed
+100 games completed
+200 games completed
+300 games completed
+400 games completed
+500 games completed
+600 games completed
+700 games completed
+800 games completed
+900 games completed
+
+Results:
+Draws: 497
+EXPERT: 497
+TD1: 6
+```
+
 ### Human-only play
 
 If you want to play a game between two humans, call `game_with_2_humans()` as follows:

@@ -108,6 +108,7 @@ Joe's turn (row, col):
 To use the expert player to train a TD Learner player you can use this function:
 
 ```
+>>> from gamelearner import *
 >>> computer_players = [TDLearner("TD1"), ExpertPlayer("EXPERT")]
 >>> train_computer_players(computer_players)
 
@@ -124,9 +125,9 @@ Training 2 computer players...
 900 games completed
 
 Results:
-EXPERT: 769
-Draws: 228
-TD1: 3
+EXPERT: 736
+Draws: 258
+TD1: 6
 
 >>> train_computer_players(computer_players)
 
@@ -143,9 +144,9 @@ Training 2 computer players...
 900 games completed
 
 Results:
-Draws: 497
-EXPERT: 497
-TD1: 6
+Draws: 745
+EXPERT: 248
+TD1: 7
 ```
 
 ### Human-only play

@@ -102,12 +102,13 @@ class TicTacToeGame:
         """
 
         self.n_players = 2
+        self.winner = None
+        self.game_over = False
         self.reset()
         if moves is not None:
             for move in moves:
                 self.make_move(move)
             self.start()
-        self.winner = None
 
     def start(self):
         """Record start time."""
@@ -139,6 +140,11 @@ class TicTacToeGame:
 
     def available_positions(self, state=None):
         """Returns list of available (empty) board positions (x, y).
+
+        Args:
+            state (np.ndarray): Array (size (3, 3)) of game state or if
+                                not provided the current game state will
+                                be used.
         """
 
         if state is None:
@@ -177,7 +183,10 @@ class TicTacToeGame:
         Args:
             move (tuple): Tuple of length 2 containing the player role
                           and the move (role, position). Position is also a
-                          tuple (row, col).
+                          tuple (row, col)
+            state (np.ndarray): Array (size (3, 3)) of game state or if
+                                not provided the current game state will
+                                be used.
         """
 
         if state is None:
@@ -217,6 +226,9 @@ class TicTacToeGame:
 
     def reverse_move(self, show=False):
         """Reverse the last move made.
+
+        Args:
+            show (bool): Print a message if True.
         """
 
         last_move = self.moves.pop()
@@ -355,7 +367,7 @@ class TDLearner(Player):
         self.value_function = value_function
         self.learning_rate = learning_rate
         self.off_policy_rate = off_policy_rate
-        self.previous_state = None
+        self.previous_states = dict()
 
     def decide_next_move(self, game, role, show=False):
 
@@ -381,15 +393,17 @@ class TDLearner(Player):
         value, position, key = random.choice(best_moves)
 
         # Update value function
-        if self.previous_state is not None:
-            self.value_function[self.previous_state] = (
-                (1 - self.learning_rate) * self.value_function[self.previous_state] +
+        if game in self.previous_states:
+            previous_key = self.previous_states[game]
+            self.value_function[previous_key] = (
+                (1 - self.learning_rate) * self.value_function[previous_key] +
                 self.learning_rate * value
             )
+
+        self.previous_states[game] = key
+
         if show:
             print("%s's turn (%s): %s" % (self.name, move_format, str(position)))
-
-        self.previous_state = key
 
         return role, position
 
@@ -398,15 +412,15 @@ class TDLearner(Player):
         super().feedback(game, role)
 
         if game.game_over:
-            key = generate_state_key(game, game.state, role)
+            previous_key = self.previous_states[game]
+            del self.previous_states[game]
             if game.winner == role:
-                self.value_function[key] = 1.0  # Reward for winning
-            if game.winner != role:
-                self.value_function[self.previous_state] = -1.0  # Penalize for losing
-                # self.value_function[key] = 1.0  # Could learn from the winner!
+                self.value_function[previous_key] = 1.0  # Reward for winning
+            elif game.winner is None:
+                self.value_function[previous_key] = 0.5  # Draw
+                self.value_function[previous_key] = 0.5  # Draw
             else:
-                self.value_function[key] = 0.0  # Draw
-                self.value_function[self.previous_state] = 0.0  # Draw
+                self.value_function[previous_key] = 0.0  # Penalize for losing
 
     def copy(self, name):
 
@@ -638,6 +652,8 @@ class GameController:
             show (bool): Print messages if True.
         """
 
+        assert self.game.game_over is not True, "Game is over. Use game.reset() to play again."
+
         if self.game.start_time is None:
             self.game.start()
         while not self.game.game_over:
@@ -749,6 +765,7 @@ def game_with_2_players(players, move_first=None, show=True):
         players (list): List of 2 Player instances
         move_first (int): Specify which player should go first.
                           Random if not specified.
+        show (bool): Print a message if True.
     """
 
     assert len(players) == 2

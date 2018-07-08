@@ -6,13 +6,10 @@ crosses).
 """
 # TODO:
 # - Test the expert as TD seems to beat it sometimes
-# - Implement save and load methods for TDLearners
-# - Look for proven ways to reduce learning_rate
 # - Allow alternating start player rather than random
-# - Currently game.reset() will confuse TDLearner
-#     Solution: Have TDLearner get previous move from game
 # - create a game.make_moves method
 # - On/off option for TD learning
+# - Are there proven ways to reduce learning_rate?
 
 
 import numpy as np

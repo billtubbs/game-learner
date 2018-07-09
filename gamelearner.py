@@ -10,9 +10,12 @@ algorithm.
 
 # TODO:
 # - Allow alternating start player rather than random
-# - create a game.make_moves method
+# - create a RandomPlayer
 # - On/off option for TD learning
+# - algorithm to test performance using ExpertPlayer
+# - create a game.make_moves method
 # - Are there proven ways to reduce learning_rate?
+# - Can a neural network learn the value function?
 
 
 import numpy as np
@@ -85,7 +88,7 @@ class Player:
 
         Args:
             filename (str): filename to use. If not provided, creates
-                            filename from self.name.  E.g. 'Player 1.pkl'
+                            filename from self.name. E.g. 'Player 1.pkl'
         """
 
         if filename is None:
@@ -181,8 +184,8 @@ class TicTacToeGame:
         Args:
             state (np.ndarray): Array (size (3, 3)) of game state
             move (tuple): Tuple of length 2 containing the player role
-                          and the move (role, position). Position is also
-                          a tuple (row, col).
+                          and the move (role, position). Position is
+                          also a tuple (row, col).
 
         Raises:
             ValueError if the position is out of bounds or if
@@ -205,8 +208,8 @@ class TicTacToeGame:
 
         Args:
             move (tuple): Tuple of length 2 containing the player role
-                          and the move (role, position). Position is also
-                          a tuple (row, col)
+                          and the move (role, position). Position is
+                          also a tuple (row, col)
             state (np.ndarray): Array (size (3, 3)) of game state or if
                                 not provided the current game state will
                                 be used.
@@ -224,12 +227,13 @@ class TicTacToeGame:
         
         Args:
             move (tuple): Tuple of length 2 containing the player role
-                          and the move (role, position). Position is also
-                          a tuple (row, col).
+                          and the move (role, position). Position is
+                          also a tuple (row, col).
             show (bool): Print a message if True.
         """
 
-        assert self.winner is None, "Player %s has already won" % str(self.winner)
+        assert self.winner is None, "Player %s has already won" % \
+                                    str(self.winner)
 
         role, position = move
         if self.turn != role:
@@ -333,7 +337,7 @@ class HumanPlayer(Player):
 
     def decide_next_move(self, game, role, show=True):
         """Determine next move in the game game by getting input
-        from the human player.
+        from a human player.
 
         Args:
             game (Game): Game which is being played
@@ -523,7 +527,7 @@ def winning_positions(game, role, available_positions, state=None):
                             on the game) of type int
 
     Returns:
-        positions (list):
+        positions (list): List of winning positions
     """
 
     positions = []
@@ -537,7 +541,7 @@ def winning_positions(game, role, available_positions, state=None):
 
 
 def fork_positions(game, role, available_positions, state=None):
-    """Returns list of positions (row, col) where the player has
+    """Returns list of positions (row, col) where role has
     two opportunities to win (two non-blocked lines of 2) if
     they took that position.
 
@@ -550,7 +554,7 @@ def fork_positions(game, role, available_positions, state=None):
                             on the game) of type int
 
     Returns:
-        positions (list):
+        positions (list): List of fork positions
     """
 
     positions = []
@@ -614,11 +618,13 @@ class ExpertPlayer(Player):
                 positions = []
                 for p1 in available_positions:
                     next_state = game.next_state((role, p1))
-                    p2s = winning_positions(game, role, available_positions, next_state)
+                    p2s = winning_positions(game, role, available_positions,
+                                            next_state)
                     for p2 in p2s:
-                        state2 = game.next_state((role, p2), state=next_state)
-                        game_over, winner = game.check_game_state(state2)
-                        if winner == role and p2 not in opponent_forks:
+                        #state2 = game.next_state((role, p2), state=next_state)
+                        #game_over, winner = game.check_game_state(state2)
+                        #if winner == role and p2 not in opponent_forks:
+                        if p2 not in opponent_forks:
                             positions.append(p1)
                 if positions:
                     move = (role, random.choice(positions))
@@ -626,7 +632,7 @@ class ExpertPlayer(Player):
         if move is None:
             # 6. Try to play center
             if center in available_positions:
-                move = (role, (1, 1))
+                move = (role, center)
 
         if move is None:
             # 7. Try to play a corner opposite to opponent
@@ -641,7 +647,7 @@ class ExpertPlayer(Player):
 
         if move is None:
             # 8. Try to play any corner
-            positions = [corner for corner in corners if game.state[corner] == 0]
+            positions = [c for c in corners if game.state[c] == 0]
             if positions:
                 move = (role, random.choice(positions))
 
@@ -686,7 +692,7 @@ class GameController:
         self.players_by_role = dict(zip(player_roles, self.players))
 
     def announce_game(self):
-        """Print game a summary of the game.
+        """Print a summary of the game.
 
         Example:
         >>> ctrl.announce_game()
@@ -709,7 +715,8 @@ class GameController:
             show (bool): Print messages if True.
         """
 
-        assert self.game.game_over is not True, "Game is over. Use game.reset() to play again."
+        assert self.game.game_over is not True, "Game is over. Use " \
+                                                "game.reset() to play again."
 
         if self.game.start_time is None:
             self.game.start()
@@ -841,7 +848,9 @@ def train_computer_players(players, iterations=1000, show=True):
         iterations (int): Number of iterations of training.
     """
 
-    n_players = len(TicTacToeGame.roles)
+    n_players = TicTacToeGame.possible_n_players[0]
+    assert len(players) == n_players
+
     stats = {p: {'won': 0, 'lost': 0, 'played': 0} for p in players}
 
     if show:
@@ -865,7 +874,8 @@ def train_computer_players(players, iterations=1000, show=True):
     if show:
         print("\nResults:")
         for player in players:
-            won, lost, played = stats[player]['won'], stats[player]['lost'], stats[player]['played']
+            won, lost, played = (stats[player]['won'], stats[player]['lost'],
+                                 stats[player]['played'])
             print("%s: won %d, lost %d" % (player.name, won, lost))
         print("Draws: %d" % (played - won - lost))
 
@@ -905,13 +915,16 @@ def main():
         train_computer_players(computer_players, 1000)
 
         best_wins = max([p.games_won for p in computer_players])
-        best_players = [p for p in computer_players if p.games_won == best_wins]
+        best_players = [p for p in computer_players if
+                        p.games_won == best_wins]
         if len(best_players) > 1:
             best_losses = min([p.games_lost for p in computer_players])
-            best_players = [p for p in best_players if p.games_lost == best_losses]
+            best_players = [p for p in best_players if
+                            p.games_lost == best_losses]
             if len(best_players) > 1:
                 best_draws = max([p.games_played for p in computer_players])
-                best_players = [p for p in best_players if p.games_played == best_draws]
+                best_players = [p for p in best_players if
+                                p.games_played == best_draws]
         best_player = random.choice(best_players)
         print("Best player so far:", best_player)
 

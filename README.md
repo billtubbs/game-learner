@@ -25,34 +25,31 @@ Classes defined in `gamelearner.py`:
 >>> players = [HumanPlayer("Joe"), TDLearner("TD")]
 >>> ctrl = GameController(game, players)
 >>> ctrl.play()
+Game of Tic Tac Toe with 2 players ['Joe', 'TD']
 _ _ _
 _ _ _
 _ _ _
-TD's turn (row, col): (2, 0)
-_ _ _
-_ _ _
-X _ _
 Joe's turn (row, col): 0,0
-O _ _
-_ _ _
 X _ _
-TD's turn (row, col): (0, 2)
-O _ X
 _ _ _
-X _ _
+_ _ _
+TD's turn (row, col): (0, 1)
+X O _
+_ _ _
+_ _ _
 Joe's turn (row, col): 1,1
-O _ X
+X O _
+_ X _
+_ _ _
+TD's turn (row, col): (2, 1)
+X O _
+_ X _
 _ O _
-X _ _
-TD's turn (row, col): (1, 2)
-O _ X
-_ O X
-X _ _
 Joe's turn (row, col): 2,2
 Joe you won!
-O _ X
+X O _
+_ X _
 _ O X
-X _ O
 Game over!
 Joe won
 ```
@@ -87,23 +84,19 @@ Training 5 computer players...
 900 games completed
 
 Results:
-TD00: won 207, lost 161
-TD01: won 148, lost 192
-TD02: won 172, lost 178
-TD03: won 186, lost 167
-TD04: won 168, lost 183
-Draws: 46
+TD00: won 185, lost 183
+TD01: won 168, lost 163
+TD02: won 180, lost 168
+TD03: won 176, lost 187
+TD04: won 168, lost 176
+Draws: 42
 Best player so far: TDLearner('TD00')
 
 Game of Tic Tac Toe with 2 players ['Joe', 'TD00']
 _ _ _
 _ _ _
 _ _ _
-TD00's turn (row, col): (2, 2)
-_ _ _
-_ _ _
-_ _ X
-Joe's turn (row, col): 
+Joe's turn (row, col):
 ```
 
 ### Training with an expert

@@ -66,7 +66,7 @@ class Player:
 
         assert not game.game_over, "Can't make move. Game is over."
 
-        if game.moves is None:
+        if len(game.moves) == 0:
             game.start()
         move = self.decide_next_move(game, role, show)
         game.make_move(move)
@@ -728,10 +728,8 @@ class GameController:
         assert self.game.game_over is not True, "Game is over. Use " \
                                                 "game.reset() to play again."
 
-        if len(self.game.moves) == 0:
-            if show:
-                self.announce_game()
-            self.game.start()
+        if show:
+            self.announce_game()
 
         while not self.game.game_over:
             if show:
@@ -743,7 +741,6 @@ class GameController:
                 if n < 1:
                     break
 
-        self.game.stop()
         for player in self.players:
             player.feedback(self.game, self.player_roles[player], show=show)
         if show:

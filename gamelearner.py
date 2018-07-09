@@ -664,8 +664,7 @@ class GameController:
     """
 
     def __init__(self, game, players, move_first=None):
-        """Play the game until game.game_over is True or after
-        n_moves if n_moves is > 0.
+        """Setup a game.
 
         Args:
             game (Game): Game that is being played

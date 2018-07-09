@@ -87,19 +87,22 @@ Training 5 computer players...
 900 games completed
 
 Results:
-Draws: 94
-TD02: 194
-TD00: 195
-TD04: 175
-TD01: 164
-TD03: 178
-Size of value functions: [2490, 2669, 2581, 2481, 2378]
+TD00: won 207, lost 161
+TD01: won 148, lost 192
+TD02: won 172, lost 178
+TD03: won 186, lost 167
+TD04: won 168, lost 183
+Draws: 46
 Best player so far: TDLearner('TD00')
 
 Game of Tic Tac Toe with 2 players ['Joe', 'TD00']
 _ _ _
 _ _ _
 _ _ _
+TD00's turn (row, col): (2, 2)
+_ _ _
+_ _ _
+_ _ X
 Joe's turn (row, col): 
 ```
 
@@ -125,9 +128,9 @@ Training 2 computer players...
 900 games completed
 
 Results:
-EXPERT: 736
-Draws: 258
-TD1: 6
+TD1: won 0, lost 578
+EXPERT: won 578, lost 0
+Draws: 422
 
 >>> train_computer_players(computer_players)
 
@@ -144,9 +147,9 @@ Training 2 computer players...
 900 games completed
 
 Results:
-Draws: 745
-EXPERT: 248
-TD1: 7
+TD1: won 0, lost 214
+EXPERT: won 214, lost 0
+Draws: 786
 ```
 
 ### Human-only play

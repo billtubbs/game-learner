@@ -686,6 +686,12 @@ class GameController:
         self.players_by_role = dict(zip(player_roles, self.players))
 
     def announce_game(self):
+        """Print game a summary of the game.
+
+        Example:
+        >>> ctrl.announce_game()
+        Game of Tic Tac Toe with 2 players ['Jack', 'Jill']
+        """
 
         items = (
             self.game.name,
@@ -696,7 +702,7 @@ class GameController:
 
     def play(self, n=None, show=True):
         """Play the game until game.game_over is True or after
-        n_moves if n_moves is > 0.
+        n moves if n > 0.
 
         Args:
             n (int): Number of moves to play (optional).

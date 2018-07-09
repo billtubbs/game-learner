@@ -620,11 +620,9 @@ class ExpertPlayer(Player):
                     next_state = game.next_state((role, p1))
                     p2s = winning_positions(game, role, available_positions,
                                             next_state)
-                    for p2 in p2s:
-                        #state2 = game.next_state((role, p2), state=next_state)
-                        #game_over, winner = game.check_game_state(state2)
-                        #if winner == role and p2 not in opponent_forks:
-                        if p2 not in opponent_forks:
+                    if p2s:
+                        assert len(p2s) == 1, "Expert code needs debugging."
+                        if p2s[0] not in opponent_forks:
                             positions.append(p1)
                 if positions:
                     move = (role, random.choice(positions))

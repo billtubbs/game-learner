@@ -146,7 +146,7 @@ class TicTacToeGame:
 
     def stop(self):
         """Record end time."""
-        self.stop_time = datetime.datetime.now()
+        self.end_time = datetime.datetime.now()
 
     def reset(self):
         """Set the state of the game to the beginning (no moves).
@@ -180,6 +180,7 @@ class TicTacToeGame:
         if state is None:
             state = self.state
         x, y = np.where(state == 0)
+
         return list(zip(x, y))
 
     def update_state(self, move, state=None):
@@ -210,16 +211,18 @@ class TicTacToeGame:
 
     def next_state(self, move, state=None):
         """Returns the next state of the game if move were to be
-        taken from current game state or from state parameter
-        if provided.
+        taken from current game state or from state if provided.
 
         Args:
             move (tuple): Tuple of length 2 containing the player role
                           and the move (role, position). Position is
-                          also a tuple (row, col)
+                          also a tuple (row, col).
             state (np.ndarray): Array (size (3, 3)) of game state or if
                                 not provided the current game state will
                                 be used.
+
+        Returns:
+            next_state (np.ndarray): copy of state after move made.
         """
 
         if state is None:
@@ -711,7 +714,7 @@ class GameController:
             len(self.players),
             str([p.name for p in self.players])
         )
-        print("\nGame of %s with %d players %s" % items)
+        print("Game of %s with %d players %s" % items)
 
     def play(self, n=None, show=True):
         """Play the game until game.game_over is True or after
@@ -725,8 +728,11 @@ class GameController:
         assert self.game.game_over is not True, "Game is over. Use " \
                                                 "game.reset() to play again."
 
-        if self.game.start_time is None:
+        if len(self.game.moves) == 0:
+            if show:
+                self.announce_game()
             self.game.start()
+
         while not self.game.game_over:
             if show:
                 self.game.show_state()
@@ -737,6 +743,7 @@ class GameController:
                 if n < 1:
                     break
 
+        self.game.stop()
         for player in self.players:
             player.feedback(self.game, self.player_roles[player], show=show)
         if show:
@@ -826,7 +833,6 @@ def game_with_2_humans(names=("Player 1", "Player 2"), move_first=None):
 
     players = [HumanPlayer(name) for name in names]
     ctrl = GameController(TicTacToeGame(), players, move_first=move_first)
-    ctrl.announce_game()
     ctrl.play(show=True)
 
 
@@ -842,8 +848,6 @@ def game_with_2_players(players, move_first=None, show=True):
 
     assert len(players) == 2
     ctrl = GameController(TicTacToeGame(), players, move_first=move_first)
-    if show:
-        ctrl.announce_game()
     ctrl.play(show=show)
 
 
@@ -896,15 +900,15 @@ def looped_games(players):
     """
 
     while True:
+        print()
         game = TicTacToeGame()
         ctrl = GameController(game, players)
-        ctrl.announce_game()
         ctrl.play(show=True)
         text = input("Press enter to play again or s to stop: ")
         if text.lower() == 's':
             break
 
-    print("Results:")
+    print("\nResults:")
     for player in players:
         items = (player.name, player.games_won, player.games_played)
         print("Player %s won %d of %d games" % items)

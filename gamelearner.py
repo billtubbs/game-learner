@@ -849,7 +849,7 @@ def train_computer_players(players, iterations=1000, show=True):
     """
 
     n_players = TicTacToeGame.possible_n_players[0]
-    assert len(players) == n_players
+    assert len(players) >= n_players, "Provide at least 2 players to train."
 
     stats = {p: {'won': 0, 'lost': 0, 'played': 0} for p in players}
 

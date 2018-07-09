@@ -15,6 +15,8 @@ algorithm.
 # - algorithm to test performance using ExpertPlayer
 # - create a game.make_moves method
 # - Are there proven ways to reduce learning_rate?
+# - include saving and loading in demos
+# - Consider using property decorators
 # - Can a neural network learn the value function?
 
 
@@ -106,7 +108,8 @@ class TicTacToeGame:
     """
 
     name = 'Tic Tac Toe'
-    size = (3, 3)
+    size = 3
+    shape = (3, 3)
     roles = [1, 2]
     possible_n_players = [2]
     marks = ['X', 'O']
@@ -114,7 +117,8 @@ class TicTacToeGame:
     help_text = {
         'move format': "row, col",
         'Move not available': "That position is not available.",
-        'Number of players': "This game requires 2 players"
+        'Number of players': "This game requires 2 players.",
+        'Out of range': "Row and column must be in range 0 to %d." % (size-1)
     }
 
     def __init__(self, moves=None):
@@ -151,7 +155,7 @@ class TicTacToeGame:
         self.moves = []
         self.player_iterator = itertools.cycle(self.roles)
         self.turn = next(self.player_iterator)
-        self.state = np.zeros(self.size, dtype='b')
+        self.state = np.zeros(self.shape, dtype='b')
         self.winner = None
         self.game_over = False
         self.start_time = None
@@ -178,14 +182,16 @@ class TicTacToeGame:
         x, y = np.where(state == 0)
         return list(zip(x, y))
 
-    def update_state(self, state, move):
+    def update_state(self, move, state=None):
         """Updates the game state with the move to be taken.
 
         Args:
-            state (np.ndarray): Array (size (3, 3)) of game state
             move (tuple): Tuple of length 2 containing the player role
                           and the move (role, position). Position is
                           also a tuple (row, col).
+            state (np.ndarray): Array (size (3, 3)) of game state or if
+                                not provided the current game state will
+                                be used.
 
         Raises:
             ValueError if the position is out of bounds or if
@@ -195,10 +201,11 @@ class TicTacToeGame:
         """
 
         role, position = move
+        assert 0 <= position[0] < self.size, self.help_text['Out of range']
+        assert 0 <= position[1] < self.size, self.help_text['Out of range']
 
-        assert 0 <= position[0] < self.size[0]
-        assert 0 <= position[1] < self.size[1]
-
+        if state is None:
+            state = self.state
         state[position] = role
 
     def next_state(self, move, state=None):
@@ -216,9 +223,9 @@ class TicTacToeGame:
         """
 
         if state is None:
-            state = self.state.copy()
+            state = self.state
         next_state = state.copy()
-        self.update_state(next_state, move)
+        self.update_state(move, state=next_state)
 
         return next_state
 
@@ -242,7 +249,7 @@ class TicTacToeGame:
         if self.state[position] != 0:
             raise ValueError(self.help_text['Move not available'])
 
-        self.update_state(self.state, move)
+        self.update_state(move)
         if show:
             print("Player %s made move %s" % (str(role), str(position)))
         self.moves.append(move)
@@ -292,6 +299,8 @@ class TicTacToeGame:
         if state is None:
             state = self.state
 
+        # ~90% of execution time in this function
+        # TODO: Ways to speed this up?
         for role in self.roles:
             positions = (state == role)
             if any((
@@ -769,7 +778,7 @@ def demo():
     game.show_state()
     print("State:\n", game.state)
 
-    print("Game over:", game.check_if_game_over())
+    print("Game over:", game.game_over)
 
     print("Moves so far:")
     game.show_moves()
@@ -777,10 +786,10 @@ def demo():
     print("Turn:", game.turn)
     print("Available moves:", game.available_positions())
 
-    game.make_move((1, (2, 0)))
+    game.make_move((1, (2, 0)), show=True)
     game.show_state()
 
-    print("Game over:", game.check_if_game_over())
+    print("Game over:", game.game_over)
     print("Winner:", game.winner)
 
     game.reverse_move(show=True)
@@ -788,10 +797,11 @@ def demo():
 
     print("Winner:", game.winner)
 
+    print("Try player 2 move...")
     try:
         game.make_move((2, (1, 2)))
-    except ValueError:
-        print("Player 2 tried to go when it wasn't their turn")
+    except ValueError as err:
+        print(err)
 
     print("Making some more moves...")
     game.make_move((1, (1, 2)), show=True)
@@ -800,7 +810,7 @@ def demo():
     game.make_move((2, (1, 0)), show=True)
     game.show_state()
     game.make_move((1, (2, 1)), show=True)
-    print("Game over:", game.check_if_game_over())
+    print("Game over:", game.game_over)
     print("Winner:", game.winner)
 
 

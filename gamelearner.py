@@ -1,11 +1,14 @@
 #!/usr/bin/env python
+"""Demonstration of the TD(0) reinforcement learning algorithm
+described in Chapter 1 of the draft 2nd edition of Sutton and
+Barto's book Reinforcement Learning: An Introduction.
 
-"""Demonstration of reinforcement learning techniques that
-learn to play simple games such as Tic-Tac-Tie (noughts and
-crosses).
+Algorithm learns to play the Tic-Tac-Tie (noughts and crosses)
+game. It can be trained against itself or against an expert
+algorithm.
 """
+
 # TODO:
-# - Test the expert as TD seems to beat it sometimes
 # - Allow alternating start player rather than random
 # - create a game.make_moves method
 # - On/off option for TD learning
@@ -18,6 +21,10 @@ import random
 import datetime
 import pickle
 from ast import literal_eval
+
+__author__ = "Bill Tubbs"
+__date__ = "July, 2018"
+__version__ = "1.0"
 
 
 class Player:
@@ -70,8 +77,8 @@ class Player:
 
     def save(self, filename=None):
         """
-        Saves the player's current state as a pickle file. To reload a saved
-        player use:
+        Saves the player's current state as a pickle file. To reload
+        a saved player use:
 
         >>> import pickle
         >>> my_player = pickle.load(open('Player 1.pkl', 'rb'))
@@ -174,8 +181,8 @@ class TicTacToeGame:
         Args:
             state (np.ndarray): Array (size (3, 3)) of game state
             move (tuple): Tuple of length 2 containing the player role
-                          and the move (role, position). Position is also a
-                          tuple (row, col).
+                          and the move (role, position). Position is also
+                          a tuple (row, col).
 
         Raises:
             ValueError if the position is out of bounds or if
@@ -198,8 +205,8 @@ class TicTacToeGame:
 
         Args:
             move (tuple): Tuple of length 2 containing the player role
-                          and the move (role, position). Position is also a
-                          tuple (row, col)
+                          and the move (role, position). Position is also
+                          a tuple (row, col)
             state (np.ndarray): Array (size (3, 3)) of game state or if
                                 not provided the current game state will
                                 be used.
@@ -217,8 +224,8 @@ class TicTacToeGame:
         
         Args:
             move (tuple): Tuple of length 2 containing the player role
-                          and the move (role, position). Position is also a
-                          tuple (row, col).
+                          and the move (role, position). Position is also
+                          a tuple (row, col).
             show (bool): Print a message if True.
         """
 
@@ -503,68 +510,70 @@ def generate_state_key(game, state, role):
     return np.array(chars, dtype='a')[state].tostring()
 
 
+def winning_positions(game, role, available_positions, state=None):
+    """Returns list of positions (row, col) that would result
+    in player role winning if they took that position.
+
+    Args:
+        game (Game): Game that is being played
+        role (object): Role that the player is playing (could be
+                       int or str depending on game)
+        available_positions (list): List of positions to search
+        state (np.ndarray): Game state array (shape may depend
+                            on the game) of type int
+
+    Returns:
+        positions (list):
+    """
+
+    positions = []
+    for position in available_positions:
+        next_state = game.next_state((role, position), state=state)
+        game_over, winner = game.check_game_state(next_state)
+        if winner == role:
+            positions.append(position)
+
+    return positions
+
+
+def fork_positions(game, role, available_positions, state=None):
+    """Returns list of positions (row, col) where the player has
+    two opportunities to win (two non-blocked lines of 2) if
+    they took that position.
+
+    Args:
+        game (Game): Game that is being played
+        role (object): Role that the player is playing (could be
+                       int or str depending on game)
+        available_positions (list): List of positions to search
+        state (np.ndarray): Game state array (shape may depend
+                            on the game) of type int
+
+    Returns:
+        positions (list):
+    """
+
+    positions = []
+    for p1 in available_positions:
+        next_state = game.next_state((role, p1), state=state)
+        remaining_positions = game.available_positions(next_state)
+        p2s = []
+        for p2 in remaining_positions:
+            state2 = game.next_state((role, p2), state=next_state)
+            game_over, winner = game.check_game_state(state2)
+            if winner == role:
+                p2s.append(p2)
+        if len(p2s) > 1:
+            positions.append(p1)
+
+    return positions
+
+
 class ExpertPlayer(Player):
 
     def __init__(self, name):
 
         super().__init__(name)
-
-    def winning_positions(self, game, role, available_positions, state=None):
-        """Returns list of positions (row, col) that would result
-        in player role winning if they took that position.
-
-        Args:
-            game (Game): Game that is being played
-            role (object): Role that the player is playing (could
-                           be int or str depending on game)
-            available_positions (list): List of positions to search
-            state (np.ndarray): Game state array (shape may depend
-                                on the game) of type int
-
-        Returns:
-            positions (list):
-        """
-
-        positions = []
-        for position in available_positions:
-            next_state = game.next_state((role, position), state=state)
-            game_over, winner = game.check_game_state(next_state)
-            if winner == role:
-                positions.append(position)
-
-        return positions
-
-    def fork_positions(self, game, role, available_positions, state=None):
-        """Returns list of positions (row, col) where the player has
-        two opportunities to win (two non-blocked lines of 2) if
-        they took that position.
-
-        Args:
-            game (Game): Game that is being played
-            role (object): Role that the player is playing (could
-                           be int or str depending on game)
-            available_positions (list): List of positions to search
-            state (np.ndarray): Game state array (shape may depend
-                                on the game) of type int
-
-        Returns:
-            positions (list):
-        """
-
-        positions = []
-        for p1 in available_positions:
-            next_state = game.next_state((role, p1), state=state)
-            remaining_positions = game.available_positions(next_state)
-            p2s = []
-            for p2 in remaining_positions:
-                state2 = game.next_state((role, p2), state=next_state)
-                game_over, winner = game.check_game_state(state2)
-                if winner == role:
-                    p2s.append(p2)
-            if len(p2s) > 1:
-                positions.append(p1)
-
-        return positions
 
     def decide_next_move(self, game, role, show=False):
 
@@ -581,31 +590,31 @@ class ExpertPlayer(Player):
 
         if move is None:
             # 2. Check for winning moves
-            positions = self.winning_positions(game, role, available_positions)
+            positions = winning_positions(game, role, available_positions)
             if positions:
                 move = (role, random.choice(positions))
 
         if move is None:
             # 3. Check for blocking moves
-            positions = self.winning_positions(game, opponent, available_positions)
+            positions = winning_positions(game, opponent, available_positions)
 
             if positions:
                 move = (role, random.choice(positions))
 
         if move is None:
             # 4. Check for fork positions
-            positions = self.fork_positions(game, role, available_positions)
+            positions = fork_positions(game, role, available_positions)
             if positions:
                 move = (role, random.choice(positions))
 
         if move is None:
             # 5. Prevent opponent from using a fork position
-            opponent_forks = self.fork_positions(game, opponent, available_positions)
+            opponent_forks = fork_positions(game, opponent, available_positions)
             if opponent_forks:
                 positions = []
                 for p1 in available_positions:
                     next_state = game.next_state((role, p1))
-                    p2s = self.winning_positions(game, role, available_positions, next_state)
+                    p2s = winning_positions(game, role, available_positions, next_state)
                     for p2 in p2s:
                         state2 = game.next_state((role, p2), state=next_state)
                         game_over, winner = game.check_game_state(state2)
@@ -651,7 +660,20 @@ class ExpertPlayer(Player):
 
 
 class GameController:
+    """Manages one game instance with players.
+    """
+
     def __init__(self, game, players, move_first=None):
+        """Play the game until game.game_over is True or after
+        n_moves if n_moves is > 0.
+
+        Args:
+            game (Game): Game that is being played
+            players (list): List of Player instances
+            move_first (int): Specify which player should go first
+                              (index to players). Random if not
+                              specified.
+        """
 
         self.game = game
         assert len(players) in game.possible_n_players, \
@@ -841,6 +863,7 @@ def train_computer_players(players, iterations=1000, show=True):
             won, lost, played = stats[player]['won'], stats[player]['lost'], stats[player]['played']
             print("%s: won %d, lost %d" % (player.name, won, lost))
         print("Draws: %d" % (played - won - lost))
+
 
 def looped_games(players):
     """Play repeated games between two players.

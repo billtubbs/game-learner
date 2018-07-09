@@ -376,7 +376,7 @@ class HumanPlayer(Player):
 
 class TDLearner(Player):
 
-    def __init__(self, name, learning_rate=0.25, off_policy_rate=0.0,
+    def __init__(self, name, learning_rate=0.25, off_policy_rate=0.1,
                  value_function=None):
 
         super().__init__(name)
@@ -572,7 +572,7 @@ class ExpertPlayer(Player):
         available_positions = game.available_positions()
         corners = [(0, 0), (0, 2), (2, 0), (2, 2)]
         center = (1, 1)
-        opponent = game.roles[(game.roles.index(game.turn) ^ 1)]
+        opponent = game.roles[(game.roles.index(role) ^ 1)]
 
         move = None
         # 1. If first move of the game, play a corner or center
@@ -601,17 +601,18 @@ class ExpertPlayer(Player):
         if move is None:
             # 5. Prevent opponent from using a fork position
             opponent_forks = self.fork_positions(game, opponent, available_positions)
-            positions = []
-            for p1 in available_positions:
-                next_state = game.next_state((role, p1))
-                p2s = self.winning_positions(game, role, available_positions, next_state)
-                for p2 in p2s:
-                    state2 = game.next_state((role, p2), state=next_state)
-                    game_over, winner = game.check_game_state(state2)
-                    if winner == role and p2 not in opponent_forks:
-                        positions.append(p1)
-            if positions:
-                move = (role, random.choice(positions))
+            if opponent_forks:
+                positions = []
+                for p1 in available_positions:
+                    next_state = game.next_state((role, p1))
+                    p2s = self.winning_positions(game, role, available_positions, next_state)
+                    for p2 in p2s:
+                        state2 = game.next_state((role, p2), state=next_state)
+                        game_over, winner = game.check_game_state(state2)
+                        if winner == role and p2 not in opponent_forks:
+                            positions.append(p1)
+                if positions:
+                    move = (role, random.choice(positions))
 
         if move is None:
             # 6. Try to play center
@@ -799,7 +800,8 @@ def game_with_2_players(players, move_first=None, show=True):
 
     assert len(players) == 2
     ctrl = GameController(TicTacToeGame(), players, move_first=move_first)
-    ctrl.announce_game()
+    if show:
+        ctrl.announce_game()
     ctrl.play(show=show)
 
 
@@ -813,7 +815,7 @@ def train_computer_players(players, iterations=1000, show=True):
     """
 
     n_players = len(TicTacToeGame.roles)
-    stats = {}
+    stats = {p: {'won': 0, 'lost': 0, 'played': 0} for p in players}
 
     if show:
         print("\nTraining %d computer players..." % len(players))
@@ -822,22 +824,23 @@ def train_computer_players(players, iterations=1000, show=True):
         selected_players = random.sample(players, n_players)
         ctrl = GameController(game, selected_players)
         ctrl.play(show=False)
-        if game.winner:
-            player = ctrl.players_by_role[game.winner]
-            # print("Player %s won" % str(player.name))
-            stats[player] = stats.get(player, 0) + 1
-        else:
-            # print("Draw")
-            stats["Draws"] = stats.get("Draws", 0) + 1
+        for player in selected_players:
+            stats[player]['played'] += 1
+            if game.winner:
+                if player == ctrl.players_by_role[game.winner]:
+                    stats[player]['won'] += 1
+                else:
+                    stats[player]['lost'] += 1
         if show:
             if i % 100 == 0:
                 print(i, "games completed")
 
     if show:
         print("\nResults:")
-        for p, count in stats.items():
-            print("%s: %d" % (p if p == "Draws" else p.name, count))
-
+        for player in players:
+            won, lost, played = stats[player]['won'], stats[player]['lost'], stats[player]['played']
+            print("%s: won %d, lost %d" % (player.name, won, lost))
+        print("Draws: %d" % (played - won - lost))
 
 def looped_games(players):
     """Play repeated games between two players.
@@ -875,6 +878,12 @@ def main():
 
         best_wins = max([p.games_won for p in computer_players])
         best_players = [p for p in computer_players if p.games_won == best_wins]
+        if len(best_players) > 1:
+            best_losses = min([p.games_lost for p in computer_players])
+            best_players = [p for p in best_players if p.games_lost == best_losses]
+            if len(best_players) > 1:
+                best_draws = max([p.games_played for p in computer_players])
+                best_players = [p for p in best_players if p.games_played == best_draws]
         best_player = random.choice(best_players)
         print("Best player so far:", best_player)
 

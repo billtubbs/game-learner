@@ -33,6 +33,13 @@ __version__ = "1.0"
 
 
 class Player:
+    """Base class for different types of game players.
+
+    Attributes:
+        Player.all_players (dict): Keeps a record of all player
+                                   instances created.
+    """
+
     all_players = {}
 
     def __init__(self, name):
@@ -49,7 +56,7 @@ class Player:
         role.
 
         Args:
-            game (Game): Game which is being played
+            game (Game): Game which is being played.
             role (object): Role that the player is playing (could
                            be int or str depending on game).
             show (bool): Print messages if True.
@@ -72,6 +79,17 @@ class Player:
         game.make_move(move)
 
     def feedback(self, game, role, show=False):
+        """Used to provide feedback to each player at the end of
+        the game so they can learn from the results. If you over-
+        ride this method in your sub-class, make sure to call
+        super().feedback(game, role) so that the player keeps a
+        record of games played, won, lost.
+
+        Args:
+            game (Game): Game which is being played.
+            role (object): Role that the player is playing (could
+                           be int or str depending on game).
+        """
 
         if game.game_over:
             self.games_played += 1
@@ -83,7 +101,7 @@ class Player:
     def save(self, filename=None):
         """
         Saves the player's current state as a pickle file. To reload
-        a saved player use:
+        a saved player object, use:
 
         >>> import pickle
         >>> my_player = pickle.load(open('Player 1.pkl', 'rb'))
@@ -104,12 +122,23 @@ class Player:
 
 
 class TicTacToeGame:
-    """Simulates a game of tic tac toe (noughts and crosses)
+    """Simulates a game of tic tac toe (noughts and crosses).
+
+    Attributes:
+        TicTacToeGame.name (str): The game's name.
+        TicTacToeGame.size (int): Width (and height) of board.
+        roles [int, int]: The player roles.
+        TicTacToeGame.possible_n_players (list): List of allowed
+            numbers of players.
+        TicTacToeGame.marks (list): The characters used to represent
+            each role's move on the board (i.e. ['X', 'O']).
+        TicTacToeGame.help_text (dict): Various messages (strings)
+            to help user.
     """
 
     name = 'Tic Tac Toe'
     size = 3
-    shape = (3, 3)
+    shape = (size, size)
     roles = [1, 2]
     possible_n_players = [2]
     marks = ['X', 'O']
@@ -127,11 +156,13 @@ class TicTacToeGame:
         Args:
             moves (list): This is optional. Provide a list of completed
                 moves. Each move should be a list or tuple of length 2
-                where the first item is the player and the second is
+                where the first item is the player role and the second is
                 the board position (row, col).
         """
 
         self.n_players = 2
+        self.start_time = None
+        self.end_time = None
         self.winner = None
         self.game_over = False
         self.reset()
@@ -141,11 +172,13 @@ class TicTacToeGame:
             self.start()
 
     def start(self):
-        """Record start time."""
+        """Record start time (self.start_time)."""
+
         self.start_time = datetime.datetime.now()
 
     def stop(self):
-        """Record end time."""
+        """Record end time (self.end_time)."""
+
         self.end_time = datetime.datetime.now()
 
     def reset(self):
@@ -324,7 +357,8 @@ class TicTacToeGame:
         """Check to see whether someone has won or if it is draw. 
         If the game is over, game_over will be set to True.
         If there is a winner, the attribute winner will be set
-        to the winning role.
+        to the winning role. This method is automatically called
+        by make_move.
         
         Returns:
             True if there is a winner else False.
@@ -344,6 +378,8 @@ class TicTacToeGame:
 
 
 class HumanPlayer(Player):
+    """Player interface for human players."""
+
     def __init__(self, name):
         super().__init__(name)
 
@@ -352,7 +388,7 @@ class HumanPlayer(Player):
         from a human player.
 
         Args:
-            game (Game): Game which is being played
+            game (Game): Game which is being played.
             role (object): Role that the player is playing (could
                            be int or str depending on game).
             show (bool): This has no effect. Messages are always
@@ -398,6 +434,9 @@ class HumanPlayer(Player):
 
 
 class TDLearner(Player):
+    """Tic-Tac-Toe game player that uses temporal difference (TD)
+    learning algorithm.
+    """
 
     def __init__(self, name, learning_rate=0.25, off_policy_rate=0.1,
                  value_function=None):
@@ -505,9 +544,9 @@ def generate_state_key(game, state, role):
     b'S--O----S'
 
     Args:
-        game (Game): Game that is being played
+        game (Game): Game that is being played.
         state (np.ndarray): Game state array (shape may depend
-                            on the game) of type int
+                            on the game) of type int.
         role (object): Role that the player is playing (could
                        be int or str depending on game).
 
@@ -531,12 +570,12 @@ def winning_positions(game, role, available_positions, state=None):
     in player role winning if they took that position.
 
     Args:
-        game (Game): Game that is being played
+        game (Game): Game that is being played.
         role (object): Role that the player is playing (could be
-                       int or str depending on game)
+                       int or str depending on game).
         available_positions (list): List of positions to search
         state (np.ndarray): Game state array (shape may depend
-                            on the game) of type int
+                            on the game) of type int.
 
     Returns:
         positions (list): List of winning positions
@@ -558,12 +597,12 @@ def fork_positions(game, role, available_positions, state=None):
     they took that position.
 
     Args:
-        game (Game): Game that is being played
+        game (Game): Game that is being played.
         role (object): Role that the player is playing (could be
-                       int or str depending on game)
+                       int or str depending on game).
         available_positions (list): List of positions to search
         state (np.ndarray): Game state array (shape may depend
-                            on the game) of type int
+                            on the game) of type int.
 
     Returns:
         positions (list): List of fork positions
@@ -586,6 +625,7 @@ def fork_positions(game, role, available_positions, state=None):
 
 
 class ExpertPlayer(Player):
+    """Optimal Tic-Tac-Toe game player that is unbeatable."""
 
     def __init__(self, name):
 
@@ -676,14 +716,13 @@ class ExpertPlayer(Player):
 
 
 class GameController:
-    """Manages one game instance with players.
-    """
+    """Manages one game instance with players."""
 
     def __init__(self, game, players, move_first=None):
         """Setup a game.
 
         Args:
-            game (Game): Game that is being played
+            game (Game): Game that is being played.
             players (list): List of Player instances
             move_first (int): Specify which player should go first
                               (index to players). Random if not
@@ -702,10 +741,9 @@ class GameController:
         self.players_by_role = dict(zip(player_roles, self.players))
 
     def announce_game(self):
-        """Print a summary of the game.
+        """Print a description of the game.
 
         Example:
-        >>> ctrl.announce_game()
         Game of Tic Tac Toe with 2 players ['Jack', 'Jill']
         """
 
@@ -747,6 +785,7 @@ class GameController:
             self.announce_result()
 
     def announce_result(self):
+        """Print the game result and which player won."""
 
         self.game.show_state()
         if self.game.game_over:
@@ -837,7 +876,7 @@ def game_with_2_players(players, move_first=None, show=True):
     """Demo of TicTacToeGame with two pre-defined players.
 
     Args:
-        players (list): List of 2 Player instances
+        players (list): List of 2 Player instances.
         move_first (int): Specify which player should go first.
                           Random if not specified.
         show (bool): Print a message if True.
@@ -853,7 +892,7 @@ def train_computer_players(players, iterations=1000, show=True):
     play against one of them.
 
     Args:
-        players (list): List of 2 Player instances
+        players (list): List of 2 Player instances.
         iterations (int): Number of iterations of training.
     """
 
@@ -912,6 +951,8 @@ def looped_games(players):
 
 
 def main():
+    """Code to demonstrate use of this module."""
+
     n = 5
     print("\nPlay Tic-Tac-Toe (Noughts and Crosses) against %d\n"
           "trained computer algorithms." % n)

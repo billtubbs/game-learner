@@ -10,11 +10,9 @@ algorithm.
 
 # TODO:
 # - Allow alternating start player rather than random
-# - create a RandomPlayer
-# - On/off option for TD learning
-# - algorithm to test performance using ExpertPlayer
 # - create a game.make_moves method
 # - Are there proven ways to reduce learning_rate?
+# - Allow player to be initialised from pickle file
 # - include saving and loading in demos
 # - Consider using property decorators
 # - Can a neural network learn the value function?
@@ -46,6 +44,7 @@ class Player:
 
         self.name = str(name)
         self.all_players[name] = self
+        self.updates = True
         self.games_played = 0
         self.games_won = 0
         self.games_lost = 0
@@ -92,11 +91,12 @@ class Player:
         """
 
         if game.game_over:
-            self.games_played += 1
-            if game.winner == role:
-                self.games_won += 1
-            elif game.winner is not None:
-                self.games_lost += 1
+            if self.updates:
+                self.games_played += 1
+                if game.winner == role:
+                    self.games_won += 1
+                elif game.winner is not None:
+                    self.games_lost += 1
 
     def save(self, filename=None):
         """
@@ -112,7 +112,7 @@ class Player:
         """
 
         if filename is None:
-            filename = self.name + 'pkl'
+            filename = self.name + '.pkl'
 
         pickle.dump(self, open(filename, 'wb'))
 
@@ -483,13 +483,14 @@ class TDLearner(Player):
             best_moves = [move for move in move_values if move[0] == max_value]
             value, position, key = random.choice(best_moves)
 
-            # Update value function (only if on-policy)
-            if game in self.previous_states:
-                previous_key = self.previous_states[game]
-                self.value_function[previous_key] = (
-                    (1 - self.learning_rate) * self.value_function[previous_key] +
-                    self.learning_rate * value
-                )
+            # Update value function if on-policy and learning is True
+            if self.updates:
+                if game in self.previous_states:
+                    previous_key = self.previous_states[game]
+                    self.value_function[previous_key] = (
+                        (1 - self.learning_rate) * self.value_function[previous_key] +
+                        self.learning_rate * value
+                    )
 
         self.previous_states[game] = key
 
@@ -503,15 +504,16 @@ class TDLearner(Player):
         super().feedback(game, role)
 
         if game.game_over:
-            previous_key = self.previous_states[game]
+            if self.updates:
+                previous_key = self.previous_states[game]
+                if game.winner == role:
+                    self.value_function[previous_key] = 1.0  # Reward for winning
+                elif game.winner is None:
+                    self.value_function[previous_key] = 0.5  # Draw
+                    self.value_function[previous_key] = 0.5  # Draw
+                else:
+                    self.value_function[previous_key] = 0.0  # Penalize for losing
             del self.previous_states[game]
-            if game.winner == role:
-                self.value_function[previous_key] = 1.0  # Reward for winning
-            elif game.winner is None:
-                self.value_function[previous_key] = 0.5  # Draw
-                self.value_function[previous_key] = 0.5  # Draw
-            else:
-                self.value_function[previous_key] = 0.0  # Penalize for losing
 
     def copy(self, name):
 
@@ -627,7 +629,7 @@ def fork_positions(game, role, available_positions, state=None):
 class ExpertPlayer(Player):
     """Optimal Tic-Tac-Toe game player that is unbeatable."""
 
-    def __init__(self, name):
+    def __init__(self, name="EXPERT"):
 
         super().__init__(name)
 
@@ -718,7 +720,7 @@ class ExpertPlayer(Player):
 class RandomPlayer(Player):
     """Tic-Tac-Toe game player that makes random moves."""
 
-    def __init__(self, name):
+    def __init__(self, name="RANDOM"):
 
         super().__init__(name)
 
@@ -972,6 +974,32 @@ def looped_games(players):
         items = (player.name, player.games_won, player.games_played)
         print("Player %s won %d of %d games" % items)
 
+
+def test_player(player, game=TicTacToeGame):
+
+    random.seed(0)
+
+    random_player = RandomPlayer()
+    expert_player = ExpertPlayer()
+    opponents = [random_player]*50 + [expert_player]*50
+    random.shuffle(opponents)
+
+    game = game()
+    player.updates, saved_mode = False, player.updates
+    for i, opponent in enumerate(opponents):
+        players = [player, opponent]
+        ctrl = GameController(game, players, move_first=i % 2)
+        ctrl.play(show=False)
+        game.reset()
+    player.updates = saved_mode
+
+    # An expert player should be able to get over 0.9
+    # (Can't always beat a random player)
+    score = (1 - random_player.games_won/50)* \
+            (random_player.games_lost/50)* \
+            (1 - expert_player.games_won/50)
+
+    return score
 
 def main():
     """Code to demonstrate use of this module."""

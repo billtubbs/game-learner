@@ -715,6 +715,29 @@ class ExpertPlayer(Player):
         return "ExpertPlayer(%s)" % self.name.__repr__()
 
 
+class RandomPlayer(Player):
+    """Tic-Tac-Toe game player that makes random moves."""
+
+    def __init__(self, name):
+
+        super().__init__(name)
+
+    def decide_next_move(self, game, role, show=False):
+
+        move_format = game.help_text['move format']
+        available_positions = game.available_positions()
+        move = (role, random.choice(available_positions))
+
+        if show:
+            print("%s's turn (%s): %s" % (self.name, move_format, str(move)))
+
+        return move
+
+    def __repr__(self):
+
+        return "RandomPlayer(%s)" % self.name.__repr__()
+
+
 class GameController:
     """Manages one game instance with players."""
 

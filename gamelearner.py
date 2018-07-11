@@ -976,9 +976,27 @@ def looped_games(players):
 
 
 def test_player(player, game=TicTacToeGame):
+    """
+    Calculates a score based on the player's performance playing 100
+    games of Tic Tac Toe, 50 against a random player and 50 against
+    an expert. Score is calculated as follows:
+
+    score = (1 - random_player.games_won/50)* \
+            (random_player.games_lost/50)* \
+            (1 - expert_player.games_won/50)
+
+    An expert player should be able to get a score over 0.9 (it's
+    not possible to always win against a random player).
+
+    Args:
+        player (GamePlayer): Player instance.
+        game (class): Class of game to use for the tests.
+
+    Returns:
+        score (float): Score between 0.0 and 1.0.
+    """
 
     random.seed(0)
-
     random_player = RandomPlayer()
     expert_player = ExpertPlayer()
     opponents = [random_player]*50 + [expert_player]*50
@@ -993,13 +1011,12 @@ def test_player(player, game=TicTacToeGame):
         game.reset()
     player.updates = saved_mode
 
-    # An expert player should be able to get over 0.9
-    # (Can't always beat a random player)
     score = (1 - random_player.games_won/50)* \
             (random_player.games_lost/50)* \
             (1 - expert_player.games_won/50)
 
     return score
+
 
 def main():
     """Code to demonstrate use of this module."""

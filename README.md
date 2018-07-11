@@ -171,6 +171,8 @@ Score after 368 games:  0.06
 Score after 424 games:  0.07
 Score after 477 games:  0.10
 Score after 528 games:  0.12
+>>> test_player(expert_player)
+0.92
 ```
 
 ### Human-only play

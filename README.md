@@ -5,7 +5,7 @@ on the simple TD (temporal difference) algorithm described in Chapter 1 of the
 [draft 2nd edition](www.incompleteideas.net/book/bookdraft2017nov5.pdf) of Sutton 
 and Barto's book Reinforcement Learning: An Introduction.
 
-Value update method:
+Value function update method:
 
 V (s) ← V (s) + α􏰜[V (s′) − V (s)􏰝]
 
@@ -14,8 +14,9 @@ Classes defined in `gamelearner.py`:
 - `TicTacToeGame` - the game dynamics
 - `HumanPlayer` - an interface to allow humans to play a game
 - `TDLearner` - a simple TD learning algorithm that learns to play from experience
-- `GameController` - controls a game between two players
 - `ExpertPlayer` - computer algorithm to play optimally - should be unbeatable [according to wikipedia](https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy)
+- `RandomPlayer` - computer player that makes random moves
+- `GameController` - controls a game between two players
 
 ### Example usage
 

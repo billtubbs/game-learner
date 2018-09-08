@@ -190,5 +190,3 @@ _ _ _
 _ _ _
 Jack's turn (row, col):
 ```
-
-If `move_first` is not specified, the player to start the game is chosen randomly.

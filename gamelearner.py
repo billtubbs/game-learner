@@ -912,6 +912,19 @@ def demo():
     print("Winner:", game.winner)
 
 
+def tictactoe_game(players, move_first=None, show=True):
+    """Demo of TicTacToeGame with two pre-defined players.
+
+    Args:
+        players (list): List of 2 Player instances.
+        move_first (int): Specify which player should go first.
+        show (bool): Print a message if True.
+    """
+
+    ctrl = GameController(TicTacToeGame(), players, move_first=move_first)
+    ctrl.play(show=show)
+
+
 def game_with_2_humans(names=("Player 1", "Player 2"), move_first=None):
     """Demo of TicTacToeGame with two new human players.
 
@@ -919,27 +932,10 @@ def game_with_2_humans(names=("Player 1", "Player 2"), move_first=None):
         names (list): A list containing two strings for names
                       of the players (optional)
         move_first (int): Specify which player should go first.
-                          Random if not specified.
     """
 
     players = [HumanPlayer(name) for name in names]
-    ctrl = GameController(TicTacToeGame(), players, move_first=move_first)
-    ctrl.play(show=True)
-
-
-def game_with_2_players(players, move_first=None, show=True):
-    """Demo of TicTacToeGame with two pre-defined players.
-
-    Args:
-        players (list): List of 2 Player instances.
-        move_first (int): Specify which player should go first.
-                          Random if not specified.
-        show (bool): Print a message if True.
-    """
-
-    assert len(players) == 2
-    ctrl = GameController(TicTacToeGame(), players, move_first=move_first)
-    ctrl.play(show=show)
+    tictactoe_game(players, move_first=move_first)
 
 
 def train_computer_players(players, iterations=1000, show=True):
@@ -1067,13 +1063,13 @@ def main():
         best_players = [p for p in computer_players if
                         p.games_won == best_wins]
         if len(best_players) > 1:
-            best_losses = min([p.games_lost for p in computer_players])
+            best_losses = min([p.games_lost for p in best_players])
             best_players = [p for p in best_players if
                             p.games_lost == best_losses]
             if len(best_players) > 1:
-                best_draws = max([p.games_played for p in computer_players])
+                most_played = max([p.games_played for p in best_players])
                 best_players = [p for p in best_players if
-                                p.games_played == best_draws]
+                                p.games_played == most_played]
         best_player = random.choice(best_players)
         print("Best player so far:", best_player)
 

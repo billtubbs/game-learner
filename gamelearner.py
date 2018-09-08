@@ -20,6 +20,7 @@ algorithm.
 
 import numpy as np
 import itertools
+from collections import deque
 import random
 import datetime
 import pickle
@@ -124,14 +125,14 @@ class Player:
 class TicTacToeGame:
     """Simulates a game of tic tac toe (noughts and crosses).
 
-    Attributes:
-        TicTacToeGame.name (str): The game's name.
-        TicTacToeGame.size (int): Width (and height) of board.
-        roles [int, int]: The player roles.
+    Class attributes:
+        TicTacToeGame.name (str): The game's name ('Tic Tac Toe').
+        TicTacToeGame.size (int): Width (and height) of board (3).
+        roles [int, int]: The player roles ([1, 2]).
         TicTacToeGame.possible_n_players (list): List of allowed
-            numbers of players.
+            numbers of players ([2]).
         TicTacToeGame.marks (list): The characters used to represent
-            each role's move on the board (i.e. ['X', 'O']).
+            each role's move on the board (['X', 'O']).
         TicTacToeGame.help_text (dict): Various messages (strings)
             to help user.
     """
@@ -144,7 +145,7 @@ class TicTacToeGame:
     marks = ['X', 'O']
 
     help_text = {
-        'move format': "row, col",
+        'Move format': "row, col",
         'Move not available': "That position is not available.",
         'Number of players': "This game requires 2 players.",
         'Out of range': "Row and column must be in range 0 to %d." % (size-1)
@@ -279,8 +280,11 @@ class TicTacToeGame:
                                     str(self.winner)
 
         role, position = move
-        if self.turn != role:
-            raise ValueError("It is not player %d's turn." % role)
+        if role != self.turn:
+            if role not in self.roles:
+                raise ValueError("%d is not a valid player role." % role)
+            else:
+                raise ValueError("It is not player %d's turn." % role)
 
         if self.state[position] != 0:
             raise ValueError(self.help_text['Move not available'])
@@ -398,7 +402,7 @@ class HumanPlayer(Player):
             move (tuple): Tuple containing (role, position).
         """
 
-        move_format = game.help_text['move format']
+        move_format = game.help_text['Move format']
         position = None
         while True:
             text = input("%s's turn (%s): " % (self.name, move_format))
@@ -453,7 +457,7 @@ class TDLearner(Player):
     def decide_next_move(self, game, role, show=False):
 
         default_value = 1.0 / game.n_players
-        move_format = game.help_text['move format']
+        move_format = game.help_text['Move format']
 
         available_positions = game.available_positions()
         if len(available_positions) is 0:
@@ -635,7 +639,7 @@ class ExpertPlayer(Player):
 
     def decide_next_move(self, game, role, show=False):
 
-        move_format = game.help_text['move format']
+        move_format = game.help_text['Move format']
         available_positions = game.available_positions()
         corners = [(0, 0), (0, 2), (2, 0), (2, 2)]
         center = (1, 1)
@@ -726,7 +730,7 @@ class RandomPlayer(Player):
 
     def decide_next_move(self, game, role, show=False):
 
-        move_format = game.help_text['move format']
+        move_format = game.help_text['Move format']
         available_positions = game.available_positions()
         move = (role, random.choice(available_positions))
 
@@ -743,27 +747,44 @@ class RandomPlayer(Player):
 class GameController:
     """Manages one game instance with players."""
 
-    def __init__(self, game, players, move_first=None):
+    def __init__(self, game, players, move_first=0, player_roles=None,
+                 restart_mode='cycle'):
         """Setup a game.
 
         Args:
             game (Game): Game that is being played.
-            players (list): List of Player instances
-            move_first (int): Specify which player should go first
-                              (index to players). Random if not
-                              specified.
+            players (list): List of player instances.
+            move_first (int): Index of player to start first.
+            player_roles (dict): Dictionary of players and their game
+                roles.  If not provided, roles are assigned according
+                to the order in the players list and the order of the
+                game's roles list.
+            restart_mode (string): Method to choose player roles when
+                the game restarts. Options include 'cycle' which
+                rotates player roles and 'random' to randomly assign
+                roles to players.
         """
 
         self.game = game
         assert len(players) in game.possible_n_players, \
             game.help_text['Number of players']
         self.players = players
-        if move_first is None:
-            move_first = random.randint(0, 1)
-        player_roles = game.roles if move_first == 0 else \
-            list(reversed(game.roles))
-        self.player_roles = dict(zip(self.players, player_roles))
-        self.players_by_role = dict(zip(player_roles, self.players))
+        if player_roles is None:
+            player_roles = dict(zip(players, game.roles))
+        self.player_roles = player_roles
+        self.player_queue = deque(self.game.roles)
+        self.restart_mode = restart_mode
+        if restart_mode == 'random':
+            random.shuffle(self.player_queue)
+        elif restart_mode != 'cycle':
+            raise ValueError("Game mode not valid.")
+        self.player_queue.rotate(move_first)
+        self.set_player_roles()
+
+    def set_player_roles(self):
+
+        self.player_roles = dict(zip(self.players, self.player_queue))
+        self.players_by_role = dict(zip(self.player_queue, self.players))
 
     def announce_game(self):
         """Print a description of the game.
@@ -819,6 +840,15 @@ class GameController:
                 print("%s won" % self.players_by_role[self.game.winner].name)
             else:
                 print("Draw")
+
+    def reset(self):
+
+        if self.restart_mode == 'random':
+            random.shuffle(self.player_queue)
+        elif self.restart_mode == 'cycle':
+            self.player_queue.rotate(1)
+        self.set_player_roles()
+        self.game.reset()
 
     def __repr__(self):
 
@@ -913,12 +943,13 @@ def game_with_2_players(players, move_first=None, show=True):
 
 
 def train_computer_players(players, iterations=1000, show=True):
-    """Play repeated games with n computer players then
-    play against one of them.
+    """Play repeated games with n computer players then play
+    against one of them.
 
     Args:
         players (list): List of 2 Player instances.
         iterations (int): Number of iterations of training.
+        show (bool): Print progress messages and results if True.
     """
 
     n_players = TicTacToeGame.possible_n_players[0]

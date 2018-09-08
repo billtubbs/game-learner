@@ -5,7 +5,7 @@ on the simple TD (temporal difference) algorithm described in Chapter 1 of the
 [draft 2nd edition](www.incompleteideas.net/book/bookdraft2017nov5.pdf) of Sutton 
 and Barto's book Reinforcement Learning: An Introduction.
 
-Value update method:
+Value function update method:
 
 V (s) ← V (s) + α􏰜[V (s′) − V (s)􏰝]
 
@@ -14,8 +14,9 @@ Classes defined in `gamelearner.py`:
 - `TicTacToeGame` - the game dynamics
 - `HumanPlayer` - an interface to allow humans to play a game
 - `TDLearner` - a simple TD learning algorithm that learns to play from experience
-- `GameController` - controls a game between two players
 - `ExpertPlayer` - computer algorithm to play optimally - should be unbeatable [according to wikipedia](https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy)
+- `RandomPlayer` - computer player that makes random moves
+- `GameController` - controls a game between two players
 
 ### Example usage
 
@@ -145,6 +146,36 @@ EXPERT: won 214, lost 0
 Draws: 786
 ```
 
+### Performance metric
+
+There is a also a test metric which tests an algorithm's performance playing
+games against an expert player and a player that makes random moves.
+
+```
+>>> from gamelearner import *
+>>> td1, td2 = [TDLearner("TD%d" % i) for i in range(2)]
+>>> random_player = RandomPlayer()
+>>> expert_player = ExpertPlayer()
+>>> players = [td1, td2, random_player, expert_player]
+>>> for i in range(10):
+...     train_computer_players(players, 100, show=False)
+...     td1_score = test_player(td1)
+...     print("Score after %d games: %5.2f" % (td1.games_played, td1_score))
+... 
+Score after 52 games:  0.05
+Score after 103 games:  0.03
+Score after 157 games:  0.04
+Score after 210 games:  0.02
+Score after 263 games:  0.06
+Score after 318 games:  0.05
+Score after 368 games:  0.06
+Score after 424 games:  0.07
+Score after 477 games:  0.10
+Score after 528 games:  0.12
+>>> test_player(expert_player)
+0.92
+```
+
 ### Human-only play
 
 If you want to play a game between two humans, call `game_with_2_humans()` as follows:
@@ -159,5 +190,3 @@ _ _ _
 _ _ _
 Jack's turn (row, col):
 ```
-
-If `move_first` is not specified, the player to start the game is chosen randomly.

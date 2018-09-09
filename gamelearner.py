@@ -57,8 +57,7 @@ class Player:
 
         Args:
             game (Game): Game which is being played.
-            role (object): Role that the player is playing (could
-                           be int or str depending on game).
+            role (object): Role that the player is playing.
             show (bool): Print messages if True.
 
         Returns:
@@ -70,6 +69,15 @@ class Player:
         return move
 
     def make_move(self, game, role, show=False):
+        """Ask player to make a move.  This method will call
+        the player's decide_next_move method and will then
+        execute the resulting move in the game.
+
+        Args:
+            game (Game): Game in which is being played.
+            role (int): Role that the player is playing.
+            show (bool): Print messages if True.
+        """
 
         assert not game.game_over, "Can't make move. Game is over."
 
@@ -442,8 +450,8 @@ class TDLearner(Player):
     learning algorithm.
     """
 
-    def __init__(self, name, learning_rate=0.25, off_policy_rate=0.1,
-                 value_function=None):
+    def __init__(self, name="TD", learning_rate=0.25,
+                 off_policy_rate=0.1, value_function=None):
 
         super().__init__(name)
 
@@ -809,8 +817,8 @@ class GameController:
             show (bool): Print messages if True.
         """
 
-        assert self.game.game_over is not True, "Game is over. Use " \
-                                                "game.reset() to play again."
+        assert self.game.game_over is not True, "Game is over. Use method " \
+                                                "reset() to play again."
 
         if show:
             self.announce_game()
@@ -912,7 +920,7 @@ def demo():
     print("Winner:", game.winner)
 
 
-def tictactoe_game(players, move_first=None, show=True):
+def tictactoe_game(players, move_first=0, show=True):
     """Demo of TicTacToeGame with two pre-defined players.
 
     Args:
@@ -925,7 +933,8 @@ def tictactoe_game(players, move_first=None, show=True):
     ctrl.play(show=show)
 
 
-def game_with_2_humans(names=("Player 1", "Player 2"), move_first=None):
+def game_with_2_humans(names=("Player 1", "Player 2"), move_first=0,
+                       repeat=True):
     """Demo of TicTacToeGame with two new human players.
 
     Args:
@@ -934,8 +943,11 @@ def game_with_2_humans(names=("Player 1", "Player 2"), move_first=None):
         move_first (int): Specify which player should go first.
     """
 
+    game = TicTacToeGame()
     players = [HumanPlayer(name) for name in names]
-    tictactoe_game(players, move_first=move_first)
+    if repeat:
+        n = None
+    play_looped_games(game, players, move_first=move_first, n=n)
 
 
 def train_computer_players(players, iterations=1000, show=True):
@@ -943,7 +955,7 @@ def train_computer_players(players, iterations=1000, show=True):
     against one of them.
 
     Args:
-        players (list): List of 2 Player instances.
+        players (list): List of at least 2 Player instances.
         iterations (int): Number of iterations of training.
         show (bool): Print progress messages and results if True.
     """
@@ -976,30 +988,47 @@ def train_computer_players(players, iterations=1000, show=True):
         for player in players:
             won, lost, played = (stats[player]['won'], stats[player]['lost'],
                                  stats[player]['played'])
-            print("%s: won %d, lost %d" % (player.name, won, lost))
-        print("Draws: %d" % (played - won - lost))
+            print("%s: won %d, lost %d, drew %d" % (player.name, won, lost,
+                                                    played - won - lost))
 
 
-def looped_games(players):
-    """Play repeated games between two players.
+def play_looped_games(game, players, move_first=0, n=None,
+                      prompt=True, show=True):
+    """Play repeated games between two players.  Displays a
+    summary of results at the end.
 
     Args:
+        game (Game): Game instance (for example, TicTacToeGame)
         players (list): List of 2 Player instances.
+        n (int or None): Number of games to play.  If n=None,
+            it will loop indefinitely.
+        prompt (bool): If True, will prompt user each iteration
+            with option to stop or play again.
     """
 
+    ctrl = GameController(game, players, move_first=move_first)
     while True:
         print()
-        game = TicTacToeGame()
-        ctrl = GameController(game, players)
-        ctrl.play(show=True)
-        text = input("Press enter to play again or s to stop: ")
-        if text.lower() == 's':
-            break
+        ctrl.play(show=show)
+
+        if n:
+            n = n - 1
+            if n < 1:
+                break
+
+        if prompt:
+            text = input("Press enter to play again or s to stop: ")
+            if text.lower() == 's':
+                break
+
+        ctrl.reset()
 
     print("\nResults:")
+    wins = 0
     for player in players:
         items = (player.name, player.games_won, player.games_played)
         print("Player %s won %d of %d games" % items)
+        wins += player.games_won
 
 
 def test_player(player, game=TicTacToeGame):
@@ -1016,7 +1045,7 @@ def test_player(player, game=TicTacToeGame):
     not possible to always win against a random player).
 
     Args:
-        player (GamePlayer): Player instance.
+        player (Player): Player instance.
         game (class): Class of game to use for the tests.
 
     Returns:
@@ -1073,7 +1102,9 @@ def main():
         best_player = random.choice(best_players)
         print("Best player so far:", best_player)
 
-        looped_games([human_player, best_player])
+        game = TicTacToeGame()
+        players = [human_player, best_player]
+        play_looped_games(game, players)
         for p in computer_players:
             # Slowly reduce the learning rate
             p.learning_rate *= 0.9

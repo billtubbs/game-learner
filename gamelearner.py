@@ -9,11 +9,9 @@ algorithm.
 """
 
 # TODO:
-# - Allow alternating start player rather than random
 # - create a game.make_moves method
 # - Are there proven ways to reduce learning_rate?
 # - Allow player to be initialised from pickle file
-# - include saving and loading in demos
 # - Consider using property decorators
 # - Can a neural network learn the value function?
 
@@ -161,7 +159,7 @@ class TicTacToeGame:
 
     def __init__(self, moves=None):
         """Initialize a game.
-        
+
         Args:
             moves (list): This is optional. Provide a list of completed
                 moves. Each move should be a list or tuple of length 2
@@ -276,7 +274,7 @@ class TicTacToeGame:
 
     def make_move(self, move, show=False):
         """Update the game state with a new move.
-        
+
         Args:
             move (tuple): Tuple of length 2 containing the player role
                           and the move (role, position). Position is
@@ -366,12 +364,12 @@ class TicTacToeGame:
         return game_over, winner
 
     def check_if_game_over(self):
-        """Check to see whether someone has won or if it is draw. 
+        """Check to see whether someone has won or if it is draw.
         If the game is over, game_over will be set to True.
         If there is a winner, the attribute winner will be set
         to the winning role. This method is automatically called
         by make_move.
-        
+
         Returns:
             True if there is a winner else False.
         """
@@ -390,9 +388,13 @@ class TicTacToeGame:
 
 
 class HumanPlayer(Player):
-    """Player interface for human players."""
 
     def __init__(self, name):
+        """Player interface for human players.
+
+        Args:
+            name (str): Name to identify the player by.
+        """
         super().__init__(name)
 
     def decide_next_move(self, game, role, show=True):
@@ -446,12 +448,20 @@ class HumanPlayer(Player):
 
 
 class TDLearner(Player):
-    """Tic-Tac-Toe game player that uses temporal difference (TD)
-    learning algorithm.
-    """
 
     def __init__(self, name="TD", learning_rate=0.25,
                  off_policy_rate=0.1, value_function=None):
+        """Tic-Tac-Toe game player that uses temporal difference (TD)
+        learning algorithm.
+
+        Args:
+            name (str): Arbitrary name to identify the player
+            learning_rate (float): Learning rate or step size (0-1).
+            off_policy_rate (float): Frequency of off-policy actions
+                (0-1).
+            value_function (dict): Optionally provide a pre-trained
+                value function.
+        """
 
         super().__init__(name)
 
@@ -476,7 +486,7 @@ class TDLearner(Player):
             position = random.choice(available_positions)
             next_state = game.next_state((role, position))
             key = generate_state_key(game, next_state, role)
-            if self.value_function.get(key, None) is None:
+            if key not in self.value_function:
                 self.value_function[key] = default_value
 
         else:
@@ -500,14 +510,16 @@ class TDLearner(Player):
                 if game in self.previous_states:
                     previous_key = self.previous_states[game]
                     self.value_function[previous_key] = (
-                        (1 - self.learning_rate) * self.value_function[previous_key] +
+                        (1 - self.learning_rate) *
+                        self.value_function[previous_key] +
                         self.learning_rate * value
                     )
 
         self.previous_states[game] = key
 
         if show:
-            print("%s's turn (%s): %s" % (self.name, move_format, str(position)))
+            print("%s's turn (%s): %s" % (self.name, move_format,
+                                          str(position)))
 
         return role, position
 
@@ -519,12 +531,14 @@ class TDLearner(Player):
             if self.updates:
                 previous_key = self.previous_states[game]
                 if game.winner == role:
-                    self.value_function[previous_key] = 1.0  # Reward for winning
+                    # Reward for winning
+                    self.value_function[previous_key] = 1.0
                 elif game.winner is None:
-                    self.value_function[previous_key] = 0.5  # Draw
-                    self.value_function[previous_key] = 0.5  # Draw
+                    # Draw
+                    self.value_function[previous_key] = 0.5
                 else:
-                    self.value_function[previous_key] = 0.0  # Penalize for losing
+                    # Penalize for losing
+                    self.value_function[previous_key] = 0.0
             del self.previous_states[game]
 
     def copy(self, name):
@@ -730,17 +744,27 @@ class ExpertPlayer(Player):
 
 
 class RandomPlayer(Player):
-    """Tic-Tac-Toe game player that makes random moves."""
 
-    def __init__(self, name="RANDOM"):
+    def __init__(self, name="RANDOM", seed=1):
+        """Tic-Tac-Toe game player that makes random moves.
+
+        Args:
+            name (str): Arbitrary name to identify the player
+            seed (int): Random number generator seed.
+        """
 
         super().__init__(name)
+
+        # Independent random number generator for sole use
+        # by this instance
+        self.rng = np.random.RandomState(seed)
 
     def decide_next_move(self, game, role, show=False):
 
         move_format = game.help_text['Move format']
         available_positions = game.available_positions()
-        move = (role, random.choice(available_positions))
+        idx = self.rng.choice(len(available_positions))
+        move = (role, available_positions[idx])
 
         if show:
             print("%s's turn (%s): %s" % (self.name, move_format, str(move)))
@@ -1031,7 +1055,7 @@ def play_looped_games(game, players, move_first=0, n=None,
         wins += player.games_won
 
 
-def test_player(player, game=TicTacToeGame):
+def test_player(player, game=TicTacToeGame, seed=1):
     """
     Calculates a score based on the player's performance playing 100
     games of Tic Tac Toe, 50 against a random player and 50 against
@@ -1047,16 +1071,20 @@ def test_player(player, game=TicTacToeGame):
     Args:
         player (Player): Player instance.
         game (class): Class of game to use for the tests.
+        seed (int): Random number generator seed. Changing this
+            will change the test results slightly.
 
     Returns:
         score (float): Score between 0.0 and 1.0.
     """
 
-    random.seed(0)
-    random_player = RandomPlayer()
+    # Instantiate two computer opponents
+    random_player = RandomPlayer(seed)
     expert_player = ExpertPlayer()
     opponents = [random_player]*50 + [expert_player]*50
-    random.shuffle(opponents)
+
+    # Shuffle with independent random number generator
+    np.random.RandomState(seed).shuffle(opponents)
 
     game = game()
     player.updates, saved_mode = False, player.updates

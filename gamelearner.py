@@ -14,7 +14,7 @@ algorithm.
 # - Allow player to be initialised from pickle file
 # - Consider using property decorators
 # - Can a neural network learn the value function?
-
+# - Ways to speed up check_game_state?
 
 import numpy as np
 import itertools
@@ -299,7 +299,7 @@ class TicTacToeGame:
         if show:
             print("Player %s made move %s" % (str(role), str(position)))
         self.moves.append(move)
-        self.check_if_game_over()
+        self.check_if_game_over(role)
         if self.game_over:
             self.stop()
         self.turn = next(self.player_iterator)
@@ -325,7 +325,7 @@ class TicTacToeGame:
         for i, move in enumerate(self.moves, start=1):
             print(i, move)
 
-    def check_game_state(self, state=None):
+    def check_game_state(self, state=None, role=None):
         """Check the game state provided to see whether someone
         has won or if it is draw.
 
@@ -333,6 +333,8 @@ class TicTacToeGame:
             state (np.array): If not None, check if this game state
                 array is a game-over state, otherwise check the
                 actual game state (self.state).
+            role (int): If specified, only check for a win by this
+                game role.
 
         returns:
             game_over, winner (bool, bool): If there is a winner,
@@ -345,9 +347,15 @@ class TicTacToeGame:
         if state is None:
             state = self.state
 
+        # If role specified, only check for a win by role
+        if role:
+            roles = [role]
+        else:
+            roles = self.roles
+
         # ~90% of execution time in this function
         # TODO: Ways to speed this up?
-        for role in self.roles:
+        for role in roles:
             positions = (state == role)
             if any((
                     np.any(positions.sum(axis=0) == 3),
@@ -363,18 +371,22 @@ class TicTacToeGame:
 
         return game_over, winner
 
-    def check_if_game_over(self):
+    def check_if_game_over(self, role=None):
         """Check to see whether someone has won or if it is draw.
         If the game is over, game_over will be set to True.
         If there is a winner, the attribute winner will be set
         to the winning role. This method is automatically called
         by make_move.
 
+        Args:
+            role (int): If specified, only check for a win by this
+            game role.
+
         Returns:
             True if there is a winner else False.
         """
 
-        self.game_over, self.winner = self.check_game_state()
+        self.game_over, self.winner = self.check_game_state(role=role)
 
         return self.game_over
 
@@ -612,7 +624,7 @@ def winning_positions(game, role, available_positions, state=None):
     positions = []
     for position in available_positions:
         next_state = game.next_state((role, position), state=state)
-        game_over, winner = game.check_game_state(next_state)
+        game_over, winner = game.check_game_state(next_state, role)
         if winner == role:
             positions.append(position)
 
@@ -643,7 +655,7 @@ def fork_positions(game, role, available_positions, state=None):
         p2s = []
         for p2 in remaining_positions:
             state2 = game.next_state((role, p2), state=next_state)
-            game_over, winner = game.check_game_state(state2)
+            game_over, winner = game.check_game_state(state2, role)
             if winner == role:
                 p2s.append(p2)
         if len(p2s) > 1:

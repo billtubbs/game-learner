@@ -1127,8 +1127,8 @@ def test_player(player, game=TicTacToeGame, seed=1):
             (random_player.games_lost/50)* \
             (1 - expert_player.games_won/50)
 
-    An expert player should be able to get a score over 0.9 (it's
-    not possible to always win against a random player).
+    An expert player should be able to get a score between 0.86 and
+    1.0 (it's not possible to always win against a random player).
 
     Args:
         player (Player): Player instance.

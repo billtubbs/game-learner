@@ -43,7 +43,7 @@ class Player:
 
         self.name = str(name)
         self.all_players[name] = self
-        self.updates = True
+        self.updates_on = True
         self.games_played = 0
         self.games_won = 0
         self.games_lost = 0
@@ -112,7 +112,7 @@ class Player:
 
         # Track number of games won and lost
         if game.game_over:
-            if self.updates:
+            if self.updates_on:
                 self.games_played += 1
                 if game.winner == role:
                     self.games_won += 1
@@ -340,25 +340,32 @@ class TicTacToeGame:
 
     def get_rewards(self):
         """Returns the rewards at the current time step for each
-        player. For TicTacToe, there are no rewards until game is
-        over."""
+        player.  In multi-player games, each player is rewarded after
+        all other opponents have moved - i.e. immediately before their
+        next move or when the game ends.  For TicTacToe, rewards are 0
+        at each time step until game is over."""
 
         rewards = {}
-        if self.game_over:
-            if self.winner:
 
-                # Winner's reward
-                rewards[self.winner] = 1.0
-
-                # Loser's reward
-                for role in [r for r in self.roles if r != self.winner]:
-                    rewards[role] = 0.0
+        if len(self.moves) >= len(self.roles):
+            if not self.game_over:
+                rewards[self.turn] = 0.0
 
             else:
+                if self.winner:
 
-                # Rewards for a draw
-                for role in self.roles:
-                    rewards[role] = 0.5
+                    # Winner's reward
+                    rewards[self.winner] = 1.0
+
+                    # Loser's reward
+                    for role in [r for r in self.roles if r != self.winner]:
+                        rewards[role] = 0.0
+
+                else:
+
+                    # Rewards for a draw
+                    for role in self.roles:
+                        rewards[role] = 0.5
 
         return rewards
 
@@ -456,7 +463,7 @@ class TicTacToeGame:
             key (string): string of bytes representing game state.
         """
 
-        # TODO: This only works for two-player games
+        # TODO: This only works for two-player games!
         if role == self.roles[0]:
             chars = ['-', 'S', 'O']
         elif role == self.roles[1]:
@@ -538,7 +545,7 @@ class HumanPlayer(Player):
 class TDLearner(Player):
 
     def __init__(self, name="TD", learning_rate=0.25,
-                 off_policy_rate=0.1, default_value=0.5,
+                 off_policy_rate=0.1, initial_value=0.5,
                  value_function=None):
         """Tic-Tac-Toe game player that uses temporal difference (TD)
         learning algorithm.
@@ -548,7 +555,7 @@ class TDLearner(Player):
             learning_rate (float): Learning rate or step size (0-1).
             off_policy_rate (float): Frequency of off-policy actions
                 (0-1).
-            default_value (float): Initial value to assign to new
+            initial_value (float): Initial value to assign to new
                 (unvisited) state.
             value_function (dict): Optionally provide a pre-trained
                 value function.
@@ -556,17 +563,37 @@ class TDLearner(Player):
 
         super().__init__(name)
 
-        self.default_value = default_value
+        self.initial_value = initial_value
         if value_function is None:
             value_function = {}
         self.value_function = value_function
         self.learning_rate = learning_rate
         self.off_policy_rate = off_policy_rate
-        self.previous_states = dict()
+        self.saved_game_states = {}
+        self.on_policy = None
+
+    def get_value(self, state_key):
+        """Returns a value from TDLearner's value_function for the
+        game state represented by state_key. If there is no item for
+        that state, set it to the default value and return that.
+        """
+
+        value = self.value_function.get(state_key, None)
+        if value is None:
+            value = self.initial_value
+            self.value_function[state_key] = value
+
+        return value
+
+    def save_game_state(self, game, state):
+        """Adds state to a list of states stored in dictionary
+        self.saved_game_states for each game being played.
+        """
+
+        self.saved_game_states[game] = \
+                    self.saved_game_states.get(game, []) + [state]
 
     def decide_next_move(self, game, role, show=False):
-
-        move_format = game.help_text['Move format']
 
         available_moves = game.available_moves()
         if len(available_moves) == 0:
@@ -574,65 +601,71 @@ class TDLearner(Player):
 
         elif random.random() < self.off_policy_rate:
             # Random off-policy move
+            self.on_policy = False
             position = random.choice(available_moves)
             next_state = game.next_state((role, position))
-            key = game.generate_state_key(next_state, role)
-            if key not in self.value_function:
-                self.value_function[key] = self.default_value
+            next_state_key = game.generate_state_key(next_state, role)
 
         else:
-            # On-policy learning
-            move_values = []
+            # On-policy move
+            self.on_policy = True
+            move_choices = []
             for position in available_moves:
                 next_state = game.next_state((role, position))
-                key = game.generate_state_key(next_state, role)
-                value = self.value_function.get(key, None)
-                if value is None:
-                    value = self.default_value
-                    self.value_function[key] = value
-                move_values.append((value, position, key))
+                next_state_key = game.generate_state_key(next_state, role)
+                next_state_value = self.get_value(next_state_key)
+                move_choices.append((next_state_value, position,
+                                     next_state_key))
 
-            max_value = max(move_values)[0]
-            best_moves = [move for move in move_values if move[0] == max_value]
-            value, position, key = random.choice(best_moves)
+            max_value = max(move_choices)[0]
+            best_options = [m for m in move_choices if m[0] == max_value]
+            _, position, next_state_key = random.choice(best_options)
 
-            # Update value function if on-policy and learning is True
-            if self.updates:
-                if game in self.previous_states:
-                    previous_key = self.previous_states[game]
-                    self.value_function[previous_key] = (
-                        (1 - self.learning_rate) *
-                        self.value_function[previous_key] +
-                        self.learning_rate * value
-                    )
-
-        self.previous_states[game] = key
+        # Save chosen state for learning updates later
+        self.save_game_state(game, next_state_key)
 
         if show:
+            move_format = game.help_text['Move format']
             print("%s's turn (%s): %s" % (self.name, move_format,
                                           str(position)))
 
         return role, position
 
     def reward(self, game, role, reward):
-        """Send TDLearner a reward.
+        """Update TDLearner's value function based on reward from
+        game.
 
         Args:
-            game (Game): Game which player is playing.
+            game (Game): Game that player is playing.
             role (int): Role that the player is playing.
-            reward (float): Reward value based on the last move
-                made by player.
+            reward (float): Reward value.
         """
 
-        previous_key = self.previous_states[game]
-        self.value_function[previous_key] = reward
+        if self.updates_on:
+            # Retrieve state change and value from last move
+            last_state_key = self.saved_game_states[game][-1]
+
+            if game.game_over:
+                # Treat reward as a terminal value for this state
+                # And replace any TD estimate of the value
+                self.value_function[last_state_key] = reward
+
+            if self.on_policy == True:
+                # Update value function
+                if len(self.saved_game_states[game]) > 1:
+                    previous_state_key = self.saved_game_states[game][-2]
+                    self.value_function[previous_state_key] = (
+                        (1 - self.learning_rate) *
+                        self.get_value(previous_state_key) +
+                        self.learning_rate * self.get_value(last_state_key)
+                    )
 
     def gameover(self, game, role, show=False):
 
         super().gameover(game, role)
 
-        # Delete record of previous state
-        del self.previous_states[game]
+        # Delete list of previous game states
+        del self.saved_game_states[game]
 
     def copy(self, name):
 
@@ -645,7 +678,7 @@ class TDLearner(Player):
         return "TDLearner(%s)" % self.name.__repr__()
 
 
-def winning_positions(game, role, available_moves, state=None):
+def winning_positions(game, role, available_positions=None, state=None):
     """Returns list of positions (row, col) that would result
     in player role winning if they took that position.
 
@@ -653,16 +686,20 @@ def winning_positions(game, role, available_moves, state=None):
         game (Game): Game that is being played.
         role (object): Role that the player is playing (could be
                        int or str depending on game).
-        available_moves (list): List of positions to search
+        available_positions (list): List of positions to search (optional)
         state (np.ndarray): Game state array (shape may depend
-                            on the game) of type int.
+                            on the game) of type int (optional).
 
     Returns:
         positions (list): List of winning positions
     """
 
+    if available_positions is None:
+        available_positions = game.available_moves(state=state)
+
     positions = []
-    for position in available_moves:
+    for position in available_positions:
+
         next_state = game.next_state((role, position), state=state)
         game_over, winner = game.check_game_state(next_state, role)
         if winner == role:
@@ -671,7 +708,7 @@ def winning_positions(game, role, available_moves, state=None):
     return positions
 
 
-def fork_positions(game, role, available_moves, state=None):
+def fork_positions(game, role, available_positions, state=None):
     """Returns list of positions (row, col) where role has
     two opportunities to win (two non-blocked lines of 2) if
     they took that position.
@@ -689,9 +726,9 @@ def fork_positions(game, role, available_moves, state=None):
     """
 
     positions = []
-    for p1 in available_moves:
+    for p1 in available_positions:
         next_state = game.next_state((role, p1), state=state)
-        remaining_positions = game.available_moves(next_state)
+        remaining_positions = game.available_moves(state=next_state)
         p2s = []
         for p2 in remaining_positions:
             state2 = game.next_state((role, p2), state=next_state)
@@ -726,13 +763,15 @@ class ExpertPlayer(Player):
 
         if move is None:
             # 2. Check for winning moves
-            positions = winning_positions(game, role, available_moves)
+            positions = winning_positions(game, role,
+                                          available_positions=available_moves)
             if positions:
                 move = (role, random.choice(positions))
 
         if move is None:
             # 3. Check for blocking moves
-            positions = winning_positions(game, opponent, available_moves)
+            positions = winning_positions(game, opponent,
+                                          available_positions=available_moves)
 
             if positions:
                 move = (role, random.choice(positions))
@@ -750,8 +789,7 @@ class ExpertPlayer(Player):
                 positions = []
                 for p1 in available_moves:
                     next_state = game.next_state((role, p1))
-                    p2s = winning_positions(game, role, available_moves,
-                                            next_state)
+                    p2s = winning_positions(game, role, state=next_state)
                     if p2s:
                         assert len(p2s) == 1, "Expert code needs debugging."
                         if p2s[0] not in opponent_forks:
@@ -905,11 +943,14 @@ class GameController:
             if show:
                 self.game.show_state()
 
+            # Tell current player to make move
             player = self.players_by_role[self.game.turn]
             player.make_move(self.game, self.player_roles[player], show=show)
 
+            # Get reward(s) from game
             rewards = self.game.get_rewards()
 
+            # Send reward(s) to players
             for role, reward in rewards.items():
                 self.players_by_role[role].reward(self.game, role, reward)
 
@@ -1152,13 +1193,13 @@ def test_player(player, game=TicTacToeGame, seed=1):
     np.random.RandomState(seed).shuffle(opponents)
 
     game = game()
-    player.updates, saved_mode = False, player.updates
+    player.updates_on, saved_mode = False, player.updates_on
     for i, opponent in enumerate(opponents):
         players = [player, opponent]
         ctrl = GameController(game, players, move_first=i % 2)
         ctrl.play(show=False)
         game.reset()
-    player.updates = saved_mode
+    player.updates_on = saved_mode
 
     score = (1 - random_player.games_won/50)* \
             (random_player.games_lost/50)* \

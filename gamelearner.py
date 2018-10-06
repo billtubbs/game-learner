@@ -222,7 +222,7 @@ class TicTacToeGame:
         for row in self.state:
             print(" ".join(list(chars[i] for i in row)))
 
-    def available_positions(self, state=None):
+    def available_moves(self, state=None):
         """Returns list of available (empty) board positions (x, y).
 
         Args:
@@ -436,16 +436,15 @@ class TicTacToeGame:
         This is used by TDLearner to create unique hashable keys
         for storing values in a dictionary.
 
-        Example (TicTacToeGame):
+        Example:
         > game.state
         array([[1, 0, 0],
                [2, 0, 0],
                [0, 0, 1]], dtype=int8)
-        > players[1].generate_state_key(game, game.state, 1)
+        > game.generate_state_key(game.state, 1)
         b'S--O----S'
 
         Args:
-            game (Game): Game that is being played.
             state (np.ndarray): Game state array (shape may depend
                                 on the game) of type int.
             role (object): Role that the player is playing (could
@@ -511,7 +510,7 @@ class HumanPlayer(Player):
             if not isinstance(position, tuple) or len(position) != 2:
                 print("Move format is %s" % move_format)
                 continue
-            if position in game.available_positions():
+            if position in game.available_moves():
                 break
             print(game.help_text['Move not available'])
             print("Try again.")
@@ -537,7 +536,8 @@ class HumanPlayer(Player):
 class TDLearner(Player):
 
     def __init__(self, name="TD", learning_rate=0.25,
-                 off_policy_rate=0.1, value_function=None):
+                 off_policy_rate=0.1, default_value=0.5,
+                 value_function=None):
         """Tic-Tac-Toe game player that uses temporal difference (TD)
         learning algorithm.
 
@@ -546,12 +546,15 @@ class TDLearner(Player):
             learning_rate (float): Learning rate or step size (0-1).
             off_policy_rate (float): Frequency of off-policy actions
                 (0-1).
+            default_value (float): Initial value to assign to new
+                (unvisited) state.
             value_function (dict): Optionally provide a pre-trained
                 value function.
         """
 
         super().__init__(name)
 
+        self.default_value = default_value
         if value_function is None:
             value_function = {}
         self.value_function = value_function
@@ -561,30 +564,29 @@ class TDLearner(Player):
 
     def decide_next_move(self, game, role, show=False):
 
-        default_value = 1.0 / game.n_players
         move_format = game.help_text['Move format']
 
-        available_positions = game.available_positions()
-        if len(available_positions) is 0:
+        available_moves = game.available_moves()
+        if len(available_moves) is 0:
             raise ValueError("There are no possible moves.")
 
         elif random.random() < self.off_policy_rate:
             # Random off-policy move
-            position = random.choice(available_positions)
+            position = random.choice(available_moves)
             next_state = game.next_state((role, position))
             key = game.generate_state_key(next_state, role)
             if key not in self.value_function:
-                self.value_function[key] = default_value
+                self.value_function[key] = self.default_value
 
         else:
             # On-policy learning
             move_values = []
-            for position in available_positions:
+            for position in available_moves:
                 next_state = game.next_state((role, position))
                 key = game.generate_state_key(next_state, role)
                 value = self.value_function.get(key, None)
                 if value is None:
-                    value = default_value
+                    value = self.default_value
                     self.value_function[key] = value
                 move_values.append((value, position, key))
 
@@ -641,7 +643,7 @@ class TDLearner(Player):
         return "TDLearner(%s)" % self.name.__repr__()
 
 
-def winning_positions(game, role, available_positions, state=None):
+def winning_positions(game, role, available_moves, state=None):
     """Returns list of positions (row, col) that would result
     in player role winning if they took that position.
 
@@ -649,7 +651,7 @@ def winning_positions(game, role, available_positions, state=None):
         game (Game): Game that is being played.
         role (object): Role that the player is playing (could be
                        int or str depending on game).
-        available_positions (list): List of positions to search
+        available_moves (list): List of positions to search
         state (np.ndarray): Game state array (shape may depend
                             on the game) of type int.
 
@@ -658,7 +660,7 @@ def winning_positions(game, role, available_positions, state=None):
     """
 
     positions = []
-    for position in available_positions:
+    for position in available_moves:
         next_state = game.next_state((role, position), state=state)
         game_over, winner = game.check_game_state(next_state, role)
         if winner == role:
@@ -667,7 +669,7 @@ def winning_positions(game, role, available_positions, state=None):
     return positions
 
 
-def fork_positions(game, role, available_positions, state=None):
+def fork_positions(game, role, available_moves, state=None):
     """Returns list of positions (row, col) where role has
     two opportunities to win (two non-blocked lines of 2) if
     they took that position.
@@ -676,7 +678,7 @@ def fork_positions(game, role, available_positions, state=None):
         game (Game): Game that is being played.
         role (object): Role that the player is playing (could be
                        int or str depending on game).
-        available_positions (list): List of positions to search
+        available_moves (list): List of positions to search
         state (np.ndarray): Game state array (shape may depend
                             on the game) of type int.
 
@@ -685,9 +687,9 @@ def fork_positions(game, role, available_positions, state=None):
     """
 
     positions = []
-    for p1 in available_positions:
+    for p1 in available_moves:
         next_state = game.next_state((role, p1), state=state)
-        remaining_positions = game.available_positions(next_state)
+        remaining_positions = game.available_moves(next_state)
         p2s = []
         for p2 in remaining_positions:
             state2 = game.next_state((role, p2), state=next_state)
@@ -710,7 +712,7 @@ class ExpertPlayer(Player):
     def decide_next_move(self, game, role, show=False):
 
         move_format = game.help_text['Move format']
-        available_positions = game.available_positions()
+        available_moves = game.available_moves()
         corners = [(0, 0), (0, 2), (2, 0), (2, 2)]
         center = (1, 1)
         opponent = game.roles[(game.roles.index(role) ^ 1)]
@@ -722,31 +724,31 @@ class ExpertPlayer(Player):
 
         if move is None:
             # 2. Check for winning moves
-            positions = winning_positions(game, role, available_positions)
+            positions = winning_positions(game, role, available_moves)
             if positions:
                 move = (role, random.choice(positions))
 
         if move is None:
             # 3. Check for blocking moves
-            positions = winning_positions(game, opponent, available_positions)
+            positions = winning_positions(game, opponent, available_moves)
 
             if positions:
                 move = (role, random.choice(positions))
 
         if move is None:
             # 4. Check for fork positions
-            positions = fork_positions(game, role, available_positions)
+            positions = fork_positions(game, role, available_moves)
             if positions:
                 move = (role, random.choice(positions))
 
         if move is None:
             # 5. Prevent opponent from using a fork position
-            opponent_forks = fork_positions(game, opponent, available_positions)
+            opponent_forks = fork_positions(game, opponent, available_moves)
             if opponent_forks:
                 positions = []
-                for p1 in available_positions:
+                for p1 in available_moves:
                     next_state = game.next_state((role, p1))
-                    p2s = winning_positions(game, role, available_positions,
+                    p2s = winning_positions(game, role, available_moves,
                                             next_state)
                     if p2s:
                         assert len(p2s) == 1, "Expert code needs debugging."
@@ -757,7 +759,7 @@ class ExpertPlayer(Player):
 
         if move is None:
             # 6. Try to play center
-            if center in available_positions:
+            if center in available_moves:
                 move = (role, center)
 
         if move is None:
@@ -779,7 +781,7 @@ class ExpertPlayer(Player):
 
         if move is None:
             # 9. Play anywhere else - i.e. a middle position on a side
-            move = (role, random.choice(available_positions))
+            move = (role, random.choice(available_moves))
 
         if show:
             print("%s's turn (%s): %s" % (self.name, move_format, str(move)))
@@ -810,9 +812,9 @@ class RandomPlayer(Player):
     def decide_next_move(self, game, role, show=False):
 
         move_format = game.help_text['Move format']
-        available_positions = game.available_positions()
-        idx = self.rng.choice(len(available_positions))
-        move = (role, available_positions[idx])
+        available_moves = game.available_moves()
+        idx = self.rng.choice(len(available_moves))
+        move = (role, available_moves[idx])
 
         if show:
             print("%s's turn (%s): %s" % (self.name, move_format, str(move)))
@@ -885,7 +887,7 @@ class GameController:
         n moves if n > 0.
 
         Args:
-            n (int): Number of moves to play (optional).
+            n_moves (int): Number of moves to play (optional).
             show (bool): Print messages if True.
         """
 
@@ -975,7 +977,7 @@ def demo():
     game.show_moves()
 
     print("Turn:", game.turn)
-    print("Available moves:", game.available_positions())
+    print("Available moves:", game.available_moves())
 
     game.make_move((1, (2, 0)), show=True)
     game.show_state()

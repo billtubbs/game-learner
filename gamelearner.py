@@ -425,10 +425,50 @@ class TicTacToeGame:
 
         return self.game_over
 
+    def generate_state_key(self, state, role):
+        """Converts a game state in the form of an array into a
+        string of bytes containing characters that represent the
+        following:
+         '-': Empty board position
+         'S': Position occupied by self
+         'O': Position occupied by opponent
+
+        This is used by TDLearner to create unique hashable keys
+        for storing values in a dictionary.
+
+        Example (TicTacToeGame):
+        > game.state
+        array([[1, 0, 0],
+               [2, 0, 0],
+               [0, 0, 1]], dtype=int8)
+        > players[1].generate_state_key(game, game.state, 1)
+        b'S--O----S'
+
+        Args:
+            game (Game): Game that is being played.
+            state (np.ndarray): Game state array (shape may depend
+                                on the game) of type int.
+            role (object): Role that the player is playing (could
+                           be int or str depending on game).
+
+        Returns:
+            key (string): string of bytes representing game state.
+        """
+
+        # TODO: This only works for two-player games
+        if role == self.roles[0]:
+            chars = ['-', 'S', 'O']
+        elif role == self.roles[1]:
+            chars = ['-', 'O', 'S']
+        else:
+            raise NotImplementedError("Role not found for this game.")
+
+        return np.array(chars, dtype='a')[state].tostring()
+
     def __repr__(self):
 
         params = []
-        if self.moves is not None:
+        if self.moves:
             params.append("moves=%s" % self.moves.__repr__())
 
         return "TicTacToeGame(%s)" % ', '.join(params)
@@ -532,7 +572,7 @@ class TDLearner(Player):
             # Random off-policy move
             position = random.choice(available_positions)
             next_state = game.next_state((role, position))
-            key = generate_state_key(game, next_state, role)
+            key = game.generate_state_key(next_state, role)
             if key not in self.value_function:
                 self.value_function[key] = default_value
 
@@ -541,7 +581,7 @@ class TDLearner(Player):
             move_values = []
             for position in available_positions:
                 next_state = game.next_state((role, position))
-                key = generate_state_key(game, next_state, role)
+                key = game.generate_state_key(next_state, role)
                 value = self.value_function.get(key, None)
                 if value is None:
                     value = default_value
@@ -599,47 +639,6 @@ class TDLearner(Player):
     def __repr__(self):
 
         return "TDLearner(%s)" % self.name.__repr__()
-
-
-def generate_state_key(game, state, role):
-    """Converts a game state in the form of an array into a
-    string of bytes containing characters that represent the
-    following:
-     '-': Empty board position
-     'S': Position occupied by self
-     'O': Position occupied by opponent
-
-    This is used by TDLearner to create unique hashable keys
-    for storing values in a dictionary.
-
-    Example (TicTacToeGame):
-    > game.state
-    array([[1, 0, 0],
-           [2, 0, 0],
-           [0, 0, 1]], dtype=int8)
-    > players[1].generate_state_key(game, game.state, 1)
-    b'S--O----S'
-
-    Args:
-        game (Game): Game that is being played.
-        state (np.ndarray): Game state array (shape may depend
-                            on the game) of type int.
-        role (object): Role that the player is playing (could
-                       be int or str depending on game).
-
-    Returns:
-        key (string): string of bytes representing game state.
-    """
-
-    # TODO: This only works for two-player games
-    if role == game.roles[0]:
-        chars = ['-', 'S', 'O']
-    elif role == game.roles[1]:
-        chars = ['-', 'O', 'S']
-    else:
-        raise NotImplementedError("Role not found for this game.")
-
-    return np.array(chars, dtype='a')[state].tostring()
 
 
 def winning_positions(game, role, available_positions, state=None):

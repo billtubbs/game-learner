@@ -339,25 +339,26 @@ class TicTacToeGame:
             print(i, move)
 
     def get_rewards(self):
-        """Returns the rewards at the current time step. For
-        TicTacToe, there are no rewards until game is over."""
+        """Returns the rewards at the current time step for each
+        player. For TicTacToe, there are no rewards until game is
+        over."""
 
-        rewards = []
+        rewards = {}
         if self.game_over:
             if self.winner:
 
                 # Winner's reward
-                rewards.append((self.winner, 1.0))
+                rewards[self.winner] = 1.0
 
                 # Loser's reward
                 for role in [r for r in self.roles if r != self.winner]:
-                    rewards.append((role, 0.0))
+                    rewards[role] = 0.0
 
             else:
 
                 # Rewards for a draw
                 for role in self.roles:
-                    rewards.append((role, 0.5))
+                    rewards[role] = 0.5
 
         return rewards
 
@@ -614,7 +615,7 @@ class TDLearner(Player):
         return role, position
 
     def reward(self, game, role, reward):
-        """Send TDLearner a reward after each move.
+        """Send TDLearner a reward.
 
         Args:
             game (Game): Game which player is playing.
@@ -909,7 +910,7 @@ class GameController:
 
             rewards = self.game.get_rewards()
 
-            for role, reward in rewards:
+            for role, reward in rewards.items():
                 self.players_by_role[role].reward(self.game, role, reward)
 
             # Stop if limit on moves reached

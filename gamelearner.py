@@ -249,10 +249,8 @@ class TicTacToeGame:
                                 be used.
 
         Raises:
-            ValueError if the position is out of bounds or if
+            AssertionError if the position is out of bounds or if
             there is already a move in that position.
-
-        Note: This method does not check if the move is valid.
         """
 
         role, position = move
@@ -261,6 +259,8 @@ class TicTacToeGame:
 
         if state is None:
             state = self.state
+
+        assert state[position] == 0, self.help_text['Move not available']
         state[position] = role
 
     def next_state(self, move, state=None):
@@ -306,13 +306,12 @@ class TicTacToeGame:
             else:
                 raise ValueError("It is not player %d's turn." % role)
 
-        if self.state[position] != 0:
-            raise ValueError(self.help_text['Move not available'])
-
         self.update_state(move)
+        self.moves.append(move)
+
         if show:
             print("Player %s made move %s" % (str(role), str(position)))
-        self.moves.append(move)
+
         self.check_if_game_over(role)
         if self.game_over:
             self.stop()
@@ -340,6 +339,8 @@ class TicTacToeGame:
             print(i, move)
 
     def get_rewards(self):
+        """Returns the rewards at the current time step. For
+        TicTacToe, there are no rewards until game is over."""
 
         rewards = []
         if self.game_over:
@@ -567,7 +568,7 @@ class TDLearner(Player):
         move_format = game.help_text['Move format']
 
         available_moves = game.available_moves()
-        if len(available_moves) is 0:
+        if len(available_moves) == 0:
             raise ValueError("There are no possible moves.")
 
         elif random.random() < self.off_policy_rate:
@@ -629,7 +630,7 @@ class TDLearner(Player):
 
         super().gameover(game, role)
 
-        # Delete buffer of previous states
+        # Delete record of previous state
         del self.previous_states[game]
 
     def copy(self, name):

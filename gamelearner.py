@@ -72,7 +72,7 @@ class Player:
         execute the resulting move in the game.
 
         Args:
-            game (Game): Game in which is being played.
+            game (Game): Game which player is playing.
             role (int): Role that the player is playing.
             show (bool): Print messages if True.
         """
@@ -84,11 +84,24 @@ class Player:
         move = self.decide_next_move(game, role, show)
         game.make_move(move)
 
-    def feedback(self, game, role, show=False):
+    def reward(self, game, role, reward):
+        """Override this method if playing needs rewards to learn
+        how to play.
+
+        Args:
+            game (Game): Game which player is playing.
+            role (int): Role that the player is playing.
+            reward (float): Reward value based on the last move
+                made by player.
+        """
+
+        pass
+
+    def gameover(self, game, role, show=False):
         """Used to provide feedback to each player at the end of
         the game so they can learn from the results. If you over-
         ride this method in your sub-class, make sure to call
-        super().feedback(game, role) so that the player keeps a
+        super().gameover(game, role) so that the player keeps a
         record of games played, won, lost.
 
         Args:
@@ -97,6 +110,7 @@ class Player:
                            be int or str depending on game).
         """
 
+        # Track number of games won and lost
         if game.game_over:
             if self.updates:
                 self.games_played += 1
@@ -325,6 +339,27 @@ class TicTacToeGame:
         for i, move in enumerate(self.moves, start=1):
             print(i, move)
 
+    def get_rewards(self):
+
+        rewards = []
+        if self.game_over:
+            if self.winner:
+
+                # Winner's reward
+                rewards.append((self.winner, 1.0))
+
+                # Loser's reward
+                for role in [r for r in self.roles if r != self.winner]:
+                    rewards.append((role, 0.0))
+
+            else:
+
+                # Rewards for a draw
+                for role in self.roles:
+                    rewards.append((role, 0.5))
+
+        return rewards
+
     def check_game_state(self, state=None, role=None):
         """Check the game state provided to see whether someone
         has won or if it is draw.
@@ -443,9 +478,9 @@ class HumanPlayer(Player):
 
         return role, position
 
-    def feedback(self, game, role, show=True):
+    def gameover(self, game, role, show=True):
 
-        super().feedback(game, role)
+        super().gameover(game, role)
 
         if game.game_over:
             if show:
@@ -535,23 +570,25 @@ class TDLearner(Player):
 
         return role, position
 
-    def feedback(self, game, role, show=False):
+    def reward(self, game, role, reward):
+        """Send TDLearner a reward after each move.
 
-        super().feedback(game, role)
+        Args:
+            game (Game): Game which player is playing.
+            role (int): Role that the player is playing.
+            reward (float): Reward value based on the last move
+                made by player.
+        """
 
-        if game.game_over:
-            if self.updates:
-                previous_key = self.previous_states[game]
-                if game.winner == role:
-                    # Reward for winning
-                    self.value_function[previous_key] = 1.0
-                elif game.winner is None:
-                    # Draw
-                    self.value_function[previous_key] = 0.5
-                else:
-                    # Penalize for losing
-                    self.value_function[previous_key] = 0.0
-            del self.previous_states[game]
+        previous_key = self.previous_states[game]
+        self.value_function[previous_key] = reward
+
+    def gameover(self, game, role, show=False):
+
+        super().gameover(game, role)
+
+        # Delete buffer of previous states
+        del self.previous_states[game]
 
     def copy(self, name):
 
@@ -844,7 +881,7 @@ class GameController:
         )
         print("Game of %s with %d players %s" % items)
 
-    def play(self, n=None, show=True):
+    def play(self, n_moves=None, show=True):
         """Play the game until game.game_over is True or after
         n moves if n > 0.
 
@@ -859,20 +896,33 @@ class GameController:
         if show:
             self.announce_game()
 
+        # Main game loop
         while not self.game.game_over:
+
             if show:
                 self.game.show_state()
+
             player = self.players_by_role[self.game.turn]
             player.make_move(self.game, self.player_roles[player], show=show)
-            if n is not None:
-                n -= 1
-                if n < 1:
+
+            rewards = self.game.get_rewards()
+
+            for role, reward in rewards:
+                self.players_by_role[role].reward(self.game, role, reward)
+
+            # Stop if limit on moves reached
+            if n_moves is not None:
+                n_moves -= 1
+                if n_moves < 1:
                     break
 
-        for player in self.players:
-            player.feedback(self.game, self.player_roles[player], show=show)
-        if show:
-            self.announce_result()
+        if self.game.game_over:
+            # Call gameover method of each player
+            for player in self.players:
+                player.gameover(self.game, self.player_roles[player],
+                                show=show)
+            if show:
+                self.announce_result()
 
     def announce_result(self):
         """Print the game result and which player won."""

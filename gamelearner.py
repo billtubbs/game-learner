@@ -54,7 +54,7 @@ class Player:
         role.
 
         Args:
-            game (Game): Game which is being played.
+            game (Game): Game being played.
             role (object): Role that the player is playing.
             show (bool): Print messages if True.
 
@@ -72,7 +72,7 @@ class Player:
         execute the resulting move in the game.
 
         Args:
-            game (Game): Game which player is playing.
+            game (Game): Game that player is playing.
             role (int): Role that the player is playing.
             show (bool): Print messages if True.
         """
@@ -85,14 +85,21 @@ class Player:
         game.make_move(move)
 
     def reward(self, game, role, reward):
-        """Override this method if playing needs rewards to learn
+        """Override this method if player needs rewards to learn
         how to play.
 
         Args:
-            game (Game): Game which player is playing.
+            game (Game): Game that player is playing.
             role (int): Role that the player is playing.
             reward (float): Reward value based on the last move
                 made by player.
+        """
+
+        pass
+
+    def game_reset(self, game):
+        """Override this method if player needs to do something
+        if the game they are playing was reset.
         """
 
         pass
@@ -105,7 +112,7 @@ class Player:
         record of games played, won, lost.
 
         Args:
-            game (Game): Game which is being played.
+            game (Game): Game being played.
             role (object): Role that the player is playing (could
                            be int or str depending on game).
         """
@@ -242,11 +249,10 @@ class TicTacToeGame:
 
         Args:
             move (tuple): Tuple of length 2 containing the player role
-                          and the move (role, position). Position is
-                          also a tuple (row, col).
+                and the move (role, position). Position is also a tuple
+                (row, col).
             state (np.ndarray): Array (size (3, 3)) of game state or if
-                                not provided the current game state will
-                                be used.
+                not provided the current game state will be used.
 
         Raises:
             AssertionError if the position is out of bounds or if
@@ -269,11 +275,10 @@ class TicTacToeGame:
 
         Args:
             move (tuple): Tuple of length 2 containing the player role
-                          and the move (role, position). Position is
-                          also a tuple (row, col).
+                and the move (role, position). Position is also a tuple
+                (row, col).
             state (np.ndarray): Array (size (3, 3)) of game state or if
-                                not provided the current game state will
-                                be used.
+                not provided the current game state will be used.
 
         Returns:
             next_state (np.ndarray): copy of state after move made.
@@ -291,8 +296,8 @@ class TicTacToeGame:
 
         Args:
             move (tuple): Tuple of length 2 containing the player role
-                          and the move (role, position). Position is
-                          also a tuple (row, col).
+                and the move (role, position). Position is also a tuple
+                (row, col).
             show (bool): Print a message if True.
         """
 
@@ -434,44 +439,53 @@ class TicTacToeGame:
 
         return self.game_over
 
-    def generate_state_key(self, state, role):
-        """Converts a game state in the form of an array into a
-        string of bytes containing characters that represent the
-        following:
+    def generate_action_key(self, state, move):
+        """Converts a move in the form of the game state after
+        the move into a string of bytes containing characters
+        that represent the following:
          '-': Empty board position
          'S': Position occupied by self
          'O': Position occupied by opponent
 
         This is used by TDLearner to create unique hashable keys
-        for storing values in a dictionary.
+        for storing action-values in a dictionary.
 
         Example:
         > game.state
         array([[1, 0, 0],
                [2, 0, 0],
                [0, 0, 1]], dtype=int8)
-        > game.generate_state_key(game.state, 1)
+        > game.generate_action_key(game.state, 1)
         b'S--O----S'
 
         Args:
-            state (np.ndarray): Game state array (shape may depend
-                                on the game) of type int.
-            role (object): Role that the player is playing (could
-                           be int or str depending on game).
+            state (np.ndarray): Game state array. Note that in
+                TicTacToe, the previous state from which an
+                action was taken is irrelevant and is not
+                included in the key. It is here simply for
+                function compatibility with TDLearner.
+            move (role, position): Tuple containing player role
+                and move position (row, col).
 
         Returns:
             key (string): string of bytes representing game state.
         """
 
+        role, position = move
         # TODO: This only works for two-player games!
         if role == self.roles[0]:
             chars = ['-', 'S', 'O']
         elif role == self.roles[1]:
             chars = ['-', 'O', 'S']
         else:
-            raise NotImplementedError("Role not found for this game.")
+            raise NotImplementedError("Role does not exist in this game.")
 
-        return np.array(chars, dtype='a')[state].tostring()
+        next_state = self.next_state(move)
+
+        # Note: In TicTacToe, the previous state is irrelevant
+        # to value function
+
+        return np.array(chars, dtype='a')[next_state].tostring()
 
     def __repr__(self):
 
@@ -497,7 +511,7 @@ class HumanPlayer(Player):
         from a human player.
 
         Args:
-            game (Game): Game which is being played.
+            game (Game): Game being played.
             role (object): Role that the player is playing (could
                            be int or str depending on game).
             show (bool): This has no effect. Messages are always
@@ -569,60 +583,58 @@ class TDLearner(Player):
         self.value_function = value_function
         self.learning_rate = learning_rate
         self.off_policy_rate = off_policy_rate
-        self.saved_game_states = {}
+        self.saved_game_actions = {}   # TODO: Scratch this - use game.moves
         self.on_policy = None
 
-    def get_value(self, state_key):
+    def get_value(self, action_key):
         """Returns a value from TDLearner's value_function for the
         game state represented by state_key. If there is no item for
         that state, set it to the default value and return that.
         """
 
-        value = self.value_function.get(state_key, None)
+        value = self.value_function.get(action_key, None)
         if value is None:
             value = self.initial_value
-            self.value_function[state_key] = value
+            self.value_function[action_key] = value
 
         return value
 
-    def save_game_state(self, game, state):
+    def save_action(self, game, action_key):
         """Adds state to a list of states stored in dictionary
-        self.saved_game_states for each game being played.
+        self.saved_game_actions for each game being played.
         """
 
-        self.saved_game_states[game] = \
-                    self.saved_game_states.get(game, []) + [state]
+        self.saved_game_actions[game] = \
+                    self.saved_game_actions.get(game, []) + [action_key]
 
     def decide_next_move(self, game, role, show=False):
 
-        available_moves = game.available_moves()
-        if len(available_moves) == 0:
+        state = game.state
+        available_positions = game.available_moves()
+        if len(available_positions) == 0:
             raise ValueError("There are no possible moves.")
 
         elif random.random() < self.off_policy_rate:
             # Random off-policy move
             self.on_policy = False
-            position = random.choice(available_moves)
-            next_state = game.next_state((role, position))
-            next_state_key = game.generate_state_key(next_state, role)
+            position = random.choice(available_positions)
+            action_key = game.generate_action_key(state, (role, position))
 
         else:
             # On-policy move
             self.on_policy = True
-            move_choices = []
-            for position in available_moves:
-                next_state = game.next_state((role, position))
-                next_state_key = game.generate_state_key(next_state, role)
-                next_state_value = self.get_value(next_state_key)
-                move_choices.append((next_state_value, position,
-                                     next_state_key))
+            options = []
+            for position in available_positions:
+                action_key = game.generate_action_key(state, (role, position))
+                action_value = self.get_value(action_key)
+                options.append((action_value, position, action_key))
 
-            max_value = max(move_choices)[0]
-            best_options = [m for m in move_choices if m[0] == max_value]
-            _, position, next_state_key = random.choice(best_options)
+            max_value = max(options)[0]
+            best_options = [m for m in options if m[0] == max_value]
+            _, position, action_key = random.choice(best_options)
 
         # Save chosen state for learning updates later
-        self.save_game_state(game, next_state_key)
+        self.save_action(game, action_key)
 
         if show:
             move_format = game.help_text['Move format']
@@ -631,7 +643,7 @@ class TDLearner(Player):
 
         return role, position
 
-    def reward(self, game, role, reward):
+    def reward(self, game, role, reward, show=False):
         """Update TDLearner's value function based on reward from
         game.
 
@@ -643,29 +655,37 @@ class TDLearner(Player):
 
         if self.updates_on:
             # Retrieve state change and value from last move
-            last_state_key = self.saved_game_states[game][-1]
+            last_action_key = self.saved_game_actions[game][-1]
 
             if game.game_over:
                 # Treat reward as a terminal value for this state
                 # And replace any TD estimate of the value
-                self.value_function[last_state_key] = reward
+                self.value_function[last_action_key] = reward
 
+            #import pdb; pdb.set_trace()
             if self.on_policy == True:
                 # Update value function
-                if len(self.saved_game_states[game]) > 1:
-                    previous_state_key = self.saved_game_states[game][-2]
-                    self.value_function[previous_state_key] = (
+                if len(self.saved_game_actions[game]) > 1:
+                    previous_action_key = self.saved_game_actions[game][-2]
+                    self.value_function[previous_action_key] = reward + (
                         (1 - self.learning_rate) *
-                        self.get_value(previous_state_key) +
-                        self.learning_rate * self.get_value(last_state_key)
+                        self.get_value(previous_action_key) +
+                        self.learning_rate * self.get_value(last_action_key)
                     )
+
+        if show:
+            print("Role %s awarded %s reward." % (role, reward))
+
+    def game_reset(self, game):
+
+        del self.saved_game_actions[game]
 
     def gameover(self, game, role, show=False):
 
         super().gameover(game, role)
 
         # Delete list of previous game states
-        del self.saved_game_states[game]
+        del self.saved_game_actions[game]
 
     def copy(self, name):
 

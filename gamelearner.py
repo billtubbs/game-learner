@@ -9,12 +9,12 @@ algorithm.
 """
 
 # TODO:
+# - how to update with multiple or continuous rewards?
 # - create a game.make_moves method
 # - Are there proven ways to reduce learning_rate?
 # - Allow player to be initialised from pickle file
 # - Consider using property decorators
 # - Can a neural network learn the value function?
-# - Ways to speed up check_game_state?
 
 import numpy as np
 import itertools

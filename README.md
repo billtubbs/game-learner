@@ -122,10 +122,8 @@ Training 2 computer players...
 900 games completed
 
 Results:
-TD1: won 0, lost 578
-EXPERT: won 578, lost 0
-Draws: 422
-
+TD1: won 0, lost 338, drew 662
+EXPERT: won 338, lost 0, drew 662
 >>> train_computer_players(computer_players)
 
 Training 2 computer players...
@@ -141,9 +139,8 @@ Training 2 computer players...
 900 games completed
 
 Results:
-TD1: won 0, lost 214
-EXPERT: won 214, lost 0
-Draws: 786
+TD1: won 0, lost 160, drew 840
+EXPERT: won 160, lost 0, drew 840
 ```
 
 ### Performance metric
@@ -162,18 +159,18 @@ games against an expert player and a player that makes random moves.
 ...     td1_score = test_player(td1)
 ...     print("Score after %d games: %5.2f" % (td1.games_played, td1_score))
 ... 
-Score after 52 games:  0.05
-Score after 103 games:  0.03
-Score after 157 games:  0.04
-Score after 210 games:  0.02
-Score after 263 games:  0.06
-Score after 318 games:  0.05
-Score after 368 games:  0.06
-Score after 424 games:  0.07
-Score after 477 games:  0.10
-Score after 528 games:  0.12
+Score after 44 games:  0.03
+Score after 94 games:  0.05
+Score after 144 games:  0.11
+Score after 185 games:  0.08
+Score after 238 games:  0.09
+Score after 288 games:  0.09
+Score after 342 games:  0.19
+Score after 382 games:  0.13
+Score after 429 games:  0.15
+Score after 475 games:  0.08
 >>> test_player(expert_player)
-0.92
+0.96
 ```
 
 ### Human-only play

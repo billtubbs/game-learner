@@ -9,7 +9,10 @@ algorithm.
 """
 
 # TODO:
+# - for one-player games it doesn't need to use a game's
+#    turn and player iterator attributes
 # - how to update with multiple or continuous rewards?
+# - no need to add initial values to value function
 # - create a game.make_moves method
 # - Are there proven ways to reduce learning_rate?
 # - Allow player to be initialised from pickle file
@@ -25,8 +28,8 @@ import pickle
 from ast import literal_eval
 
 __author__ = "Bill Tubbs"
-__date__ = "July, 2018"
-__version__ = "1.0"
+__date__ = "October, 2018"
+__version__ = "1.1"
 
 
 class Player:
@@ -79,8 +82,13 @@ class Player:
 
         assert not game.game_over, "Can't make move. Game is over."
 
+        # Player needs to trigger game start if method exists
         if len(game.moves) == 0:
-            game.start()
+            try:
+                game.start()
+            except AttributeError:
+                pass
+
         move = self.decide_next_move(game, role, show)
         game.make_move(move)
 
@@ -99,7 +107,7 @@ class Player:
 
     def game_reset(self, game):
         """Override this method if player needs to do something
-        if the game they are playing was reset.
+        when the game they are playing is reset.
         """
 
         pass
@@ -115,6 +123,7 @@ class Player:
             game (Game): Game being played.
             role (object): Role that the player is playing (could
                            be int or str depending on game).
+            show (bool): Print a message (optional).
         """
 
         # Track number of games won and lost
@@ -193,7 +202,11 @@ class TicTacToeGame:
         self.end_time = None
         self.winner = None
         self.game_over = False
-        self.reset()
+        self.player_iterator = itertools.cycle(self.roles)
+        self.turn = next(self.player_iterator)
+        self.state = np.zeros(self.shape, dtype='b')
+
+        self.moves = []
         if moves is not None:
             for move in moves:
                 self.make_move(move)
@@ -210,7 +223,8 @@ class TicTacToeGame:
         self.end_time = datetime.datetime.now()
 
     def reset(self):
-        """Set the state of the game to the beginning (no moves).
+        """Set the state of the game back to the beginning
+        (no moves made).
         """
 
         self.moves = []
@@ -336,13 +350,6 @@ class TicTacToeGame:
         self.check_if_game_over()
         self.turn = next(self.player_iterator)  # TODO: Only works for 2 player games!
 
-    def show_moves(self):
-        """Show a list of the moves made.
-        """
-
-        for i, move in enumerate(self.moves, start=1):
-            print(i, move)
-
     def get_rewards(self):
         """Returns the rewards at the current time step for each
         player.  In multi-player games, each player is rewarded after
@@ -440,9 +447,9 @@ class TicTacToeGame:
         return self.game_over
 
     def generate_action_key(self, state, move):
-        """Converts a move in the form of the game state after
-        the move into a string of bytes containing characters
-        that represent the following:
+        """Converts a move in the form of the game state after the
+        move into a string of bytes containing characters that
+        represent the following:
          '-': Empty board position
          'S': Position occupied by self
          'O': Position occupied by opponent
@@ -460,10 +467,10 @@ class TicTacToeGame:
 
         Args:
             state (np.ndarray): Game state array. Note that in
-                TicTacToe, the previous state from which an
-                action was taken is irrelevant and is not
-                included in the key. It is here simply for
-                function compatibility with TDLearner.
+                TicTacToe, the previous state from which an action
+                was taken is irrelevant and is not included in
+                the key. It is here simply for compatibility
+                with TDLearner.
             move (role, position): Tuple containing player role
                 and move position (row, col).
 
@@ -472,13 +479,12 @@ class TicTacToeGame:
         """
 
         role, position = move
-        # TODO: This only works for two-player games!
         if role == self.roles[0]:
             chars = ['-', 'S', 'O']
         elif role == self.roles[1]:
             chars = ['-', 'O', 'S']
         else:
-            raise NotImplementedError("Role does not exist in this game.")
+            raise ValueError("Role does not exist in this game.")
 
         next_state = self.next_state(move)
 
@@ -588,8 +594,8 @@ class TDLearner(Player):
 
     def get_value(self, action_key):
         """Returns a value from TDLearner's value_function for the
-        game state represented by state_key. If there is no item for
-        that state, set it to the default value and return that.
+        game move represented by action_key. If there is no item for
+        that move, set it to the default value and return that.
         """
 
         value = self.value_function.get(action_key, None)
@@ -600,12 +606,12 @@ class TDLearner(Player):
         return value
 
     def save_action(self, game, action_key):
-        """Adds state to a list of states stored in dictionary
+        """Adds key action_key to a list of keys stored in dictionary
         self.saved_game_actions for each game being played.
         """
 
         self.saved_game_actions[game] = \
-                    self.saved_game_actions.get(game, []) + [action_key]
+            self.saved_game_actions.get(game, []) + [action_key]
 
     def decide_next_move(self, game, role, show=False):
 
@@ -651,6 +657,7 @@ class TDLearner(Player):
             game (Game): Game that player is playing.
             role (int): Role that the player is playing.
             reward (float): Reward value.
+            show (bool): Print a message if True.
         """
 
         if self.updates_on:
@@ -662,8 +669,7 @@ class TDLearner(Player):
                 # And replace any TD estimate of the value
                 self.value_function[last_action_key] = reward
 
-            #import pdb; pdb.set_trace()
-            if self.on_policy == True:
+            if self.on_policy is True:
                 # Update value function
                 if len(self.saved_game_actions[game]) > 1:
                     previous_action_key = self.saved_game_actions[game][-2]
@@ -674,10 +680,13 @@ class TDLearner(Player):
                     )
 
         if show:
-            print("Role %s awarded %s reward." % (role, reward))
+            print("Role %s got %s reward." % (role, reward))
 
     def game_reset(self, game):
+        """Tells TD Learner that game has been reset.
+        """
 
+        # Delete stored list of previous game states
         del self.saved_game_actions[game]
 
     def gameover(self, game, role, show=False):
@@ -737,7 +746,7 @@ def fork_positions(game, role, available_positions, state=None):
         game (Game): Game that is being played.
         role (object): Role that the player is playing (could be
                        int or str depending on game).
-        available_moves (list): List of positions to search
+        available_positions (list): List of positions to search.
         state (np.ndarray): Game state array (shape may depend
                             on the game) of type int.
 
@@ -764,9 +773,13 @@ def fork_positions(game, role, available_positions, state=None):
 class ExpertPlayer(Player):
     """Optimal Tic-Tac-Toe game player that is unbeatable."""
 
-    def __init__(self, name="EXPERT"):
+    def __init__(self, name="EXPERT", seed=None):
 
         super().__init__(name)
+
+        # Independent random number generator for sole use
+        # by this instance
+        self.rng = random.Random(seed)
 
     def decide_next_move(self, game, role, show=False):
 
@@ -779,14 +792,14 @@ class ExpertPlayer(Player):
         move = None
         # 1. If first move of the game, play a corner or center
         if len(game.moves) == 0:
-            move = (role, random.choice(corners + [center]))
+            move = (role, self.rng.choice(corners + [center]))
 
         if move is None:
             # 2. Check for winning moves
             positions = winning_positions(game, role,
                                           available_positions=available_moves)
             if positions:
-                move = (role, random.choice(positions))
+                move = (role, self.rng.choice(positions))
 
         if move is None:
             # 3. Check for blocking moves
@@ -794,13 +807,13 @@ class ExpertPlayer(Player):
                                           available_positions=available_moves)
 
             if positions:
-                move = (role, random.choice(positions))
+                move = (role, self.rng.choice(positions))
 
         if move is None:
             # 4. Check for fork positions
             positions = fork_positions(game, role, available_moves)
             if positions:
-                move = (role, random.choice(positions))
+                move = (role, self.rng.choice(positions))
 
         if move is None:
             # 5. Prevent opponent from using a fork position
@@ -815,7 +828,7 @@ class ExpertPlayer(Player):
                         if p2s[0] not in opponent_forks:
                             positions.append(p1)
                 if positions:
-                    move = (role, random.choice(positions))
+                    move = (role, self.rng.choice(positions))
 
         if move is None:
             # 6. Try to play center
@@ -831,17 +844,17 @@ class ExpertPlayer(Player):
                 if states == (0, opponent):
                     positions.append(corners[p1])
             if positions:
-                move = (role, random.choice(positions))
+                move = (role, self.rng.choice(positions))
 
         if move is None:
             # 8. Try to play any corner
             positions = [c for c in corners if game.state[c] == 0]
             if positions:
-                move = (role, random.choice(positions))
+                move = (role, self.rng.choice(positions))
 
         if move is None:
             # 9. Play anywhere else - i.e. a middle position on a side
-            move = (role, random.choice(available_moves))
+            move = (role, self.rng.choice(available_moves))
 
         if show:
             print("%s's turn (%s): %s" % (self.name, move_format, str(move)))
@@ -855,7 +868,7 @@ class ExpertPlayer(Player):
 
 class RandomPlayer(Player):
 
-    def __init__(self, name="RANDOM", seed=1):
+    def __init__(self, name="RANDOM", seed=None):
         """Tic-Tac-Toe game player that makes random moves.
 
         Args:
@@ -867,16 +880,15 @@ class RandomPlayer(Player):
 
         # Independent random number generator for sole use
         # by this instance
-        self.rng = np.random.RandomState(seed)
+        self.rng = random.Random(seed)
 
     def decide_next_move(self, game, role, show=False):
 
-        move_format = game.help_text['Move format']
         available_moves = game.available_moves()
-        idx = self.rng.choice(len(available_moves))
-        move = (role, available_moves[idx])
+        move = (role, self.rng.choice(available_moves))
 
         if show:
+            move_format = game.help_text['Move format']
             print("%s's turn (%s): %s" % (self.name, move_format, str(move)))
 
         return move
@@ -921,12 +933,17 @@ class GameController:
         elif restart_mode != 'cycle':
             raise ValueError("Game mode not valid.")
         self.player_queue.rotate(move_first)
-        self.set_player_roles()
+        self.player_roles, self.players_by_role = self.player_role_dicts()
 
-    def set_player_roles(self):
+    def player_role_dicts(self):
+        """Returns a tuple containing two dictionaries player_roles
+        and players_by_role.  player_roles contains the role of
+        each player in the game, and players_by_role contains
+        the player in each game role.
+        """
 
-        self.player_roles = dict(zip(self.players, self.player_queue))
-        self.players_by_role = dict(zip(self.player_queue, self.players))
+        return dict(zip(self.players, self.player_queue)), \
+               dict(zip(self.player_queue, self.players))
 
     def announce_game(self):
         """Print a description of the game.
@@ -943,8 +960,8 @@ class GameController:
         print("Game of %s with %d players %s" % items)
 
     def play(self, n_moves=None, show=True):
-        """Play the game until game.game_over is True or after
-        n moves if n > 0.
+        """Play the game until game.game_over is True or after n
+        moves if n > 0.
 
         Args:
             n_moves (int): Number of moves to play (optional).
@@ -995,7 +1012,10 @@ class GameController:
         if self.game.game_over:
             print("Game over!")
             if self.game.winner:
-                print("%s won" % self.players_by_role[self.game.winner].name)
+                print("%s won in %d moves" % (
+                      self.players_by_role[self.game.winner].name,
+                      len(self.game.moves))
+                )
             else:
                 print("Draw")
 
@@ -1005,7 +1025,7 @@ class GameController:
             random.shuffle(self.player_queue)
         elif self.restart_mode == 'cycle':
             self.player_queue.rotate(1)
-        self.set_player_roles()
+        self.player_roles, self.players_by_role = self.player_role_dicts()
         self.game.reset()
 
     def __repr__(self):
@@ -1037,7 +1057,7 @@ def demo():
     print("Game over:", game.game_over)
 
     print("Moves so far:")
-    game.show_moves()
+    print(game.moves)
 
     print("Turn:", game.turn)
     print("Available moves:", game.available_moves())
@@ -1084,19 +1104,19 @@ def tictactoe_game(players, move_first=0, show=True):
 
 
 def game_with_2_humans(names=("Player 1", "Player 2"), move_first=0,
-                       repeat=True):
+                       n=1):
     """Demo of TicTacToeGame with two new human players.
 
     Args:
         names (list): A list containing two strings for names
-                      of the players (optional)
+            of the players (optional).
         move_first (int): Specify which player should go first.
+        n (int or None): Number of games to play.  If n=None,
+            it will loop indefinitely.
     """
 
     game = TicTacToeGame()
     players = [HumanPlayer(name) for name in names]
-    if repeat:
-        n = None
     play_looped_games(game, players, move_first=move_first, n=n)
 
 
@@ -1150,10 +1170,12 @@ def play_looped_games(game, players, move_first=0, n=None,
     Args:
         game (Game): Game instance (for example, TicTacToeGame)
         players (list): List of 2 Player instances.
+        move_first (int): Index of player to start first.
         n (int or None): Number of games to play.  If n=None,
             it will loop indefinitely.
         prompt (bool): If True, will prompt user each iteration
             with option to stop or play again.
+        show (bool): Print messages if True.
     """
 
     ctrl = GameController(game, players, move_first=move_first)
@@ -1162,7 +1184,7 @@ def play_looped_games(game, players, move_first=0, n=None,
         ctrl.play(show=show)
 
         if n:
-            n = n - 1
+            n -= 1
             if n < 1:
                 break
 
@@ -1205,12 +1227,12 @@ def test_player(player, game=TicTacToeGame, seed=1):
     """
 
     # Instantiate two computer opponents
-    random_player = RandomPlayer(seed)
-    expert_player = ExpertPlayer()
+    random_player = RandomPlayer(seed=seed)
+    expert_player = ExpertPlayer(seed=seed)
     opponents = [random_player]*50 + [expert_player]*50
 
     # Shuffle with independent random number generator
-    np.random.RandomState(seed).shuffle(opponents)
+    random.Random(seed).shuffle(opponents)
 
     game = game()
     player.updates_on, saved_mode = False, player.updates_on
@@ -1221,8 +1243,8 @@ def test_player(player, game=TicTacToeGame, seed=1):
         game.reset()
     player.updates_on = saved_mode
 
-    score = (1 - random_player.games_won/50)* \
-            (random_player.games_lost/50)* \
+    score = (1 - random_player.games_won/50) * \
+            (random_player.games_lost/50) * \
             (1 - expert_player.games_won/50)
 
     return score

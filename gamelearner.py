@@ -13,6 +13,8 @@ algorithm.
 #    turn and player iterator attributes
 # - how to update with multiple or continuous rewards?
 # - no need to add initial values to value function
+# - TD Learner does not need to memorize previous states
+#   Can get them from the game
 # - create a game.make_moves method
 # - Are there proven ways to reduce learning_rate?
 # - Allow player to be initialised from pickle file
@@ -92,7 +94,7 @@ class Player:
         move = self.decide_next_move(game, role, show)
         game.make_move(move)
 
-    def reward(self, game, role, reward):
+    def reward(self, game, role, reward, show=False):
         """Override this method if player needs rewards to learn
         how to play.
 
@@ -351,35 +353,42 @@ class TicTacToeGame:
         self.turn = next(self.player_iterator)  # TODO: Only works for 2 player games!
 
     def get_rewards(self):
-        """Returns the rewards at the current time step for each
-        player.  In multi-player games, each player is rewarded after
-        all other opponents have moved - i.e. immediately before their
-        next move or when the game ends.  For TicTacToe, rewards are 0
-        at each time step until game is over."""
+        """Returns any rewards at the current time step for players.
+        In TicTacToe, there are no rewards until the end of the
+        game."""
 
         rewards = {}
 
-        if len(self.moves) >= len(self.roles):
-            if not self.game_over:
-                rewards[self.turn] = 0.0
+        if self.game_over:
+            if self.winner:
+
+                # Winner's reward
+                rewards[self.winner] = 1.0
+
+                # Loser's reward
+                for role in [r for r in self.roles if r != self.winner]:
+                    rewards[role] = 0.0
 
             else:
-                if self.winner:
 
-                    # Winner's reward
-                    rewards[self.winner] = 1.0
-
-                    # Loser's reward
-                    for role in [r for r in self.roles if r != self.winner]:
-                        rewards[role] = 0.0
-
-                else:
-
-                    # Rewards for a draw
-                    for role in self.roles:
-                        rewards[role] = 0.5
+                # Rewards for a draw
+                for role in self.roles:
+                    rewards[role] = 0.5
 
         return rewards
+
+    def player_made_last_move(self):
+        """Determines if last move made was the last move for
+        that player.  This is used by TDLearners to set the
+        estimated value of future states to zero.
+        """
+
+        if self.game_over or np.sum(self.state == 0) < 2:
+            last_move = True
+        else:
+            last_move = False
+
+        return last_move
 
     def check_game_state(self, state=None, role=None):
         """Check the game state provided to see whether someone
@@ -410,7 +419,8 @@ class TicTacToeGame:
             roles = self.roles
 
         # ~90% of execution time in this function
-        # TODO: Ways to speed this up?
+        # TODO: Ways to speed this up?  Call it less?
+        # Idea: Could make a 3D array of win moves
         for role in roles:
             positions = (state == role)
             if any((
@@ -564,7 +574,7 @@ class HumanPlayer(Player):
 
 class TDLearner(Player):
 
-    def __init__(self, name="TD", learning_rate=0.25,
+    def __init__(self, name="TD", learning_rate=0.25, gamma=1.0,
                  off_policy_rate=0.1, initial_value=0.5,
                  value_function=None):
         """Tic-Tac-Toe game player that uses temporal difference (TD)
@@ -573,6 +583,7 @@ class TDLearner(Player):
         Args:
             name (str): Arbitrary name to identify the player
             learning_rate (float): Learning rate or step size (0-1).
+            gamma (float): Discount rate (0-1).
             off_policy_rate (float): Frequency of off-policy actions
                 (0-1).
             initial_value (float): Initial value to assign to new
@@ -588,8 +599,10 @@ class TDLearner(Player):
             value_function = {}
         self.value_function = value_function
         self.learning_rate = learning_rate
+        self.gamma = gamma
         self.off_policy_rate = off_policy_rate
         self.saved_game_actions = {}   # TODO: Scratch this - use game.moves
+        self.made_last_move = {}
         self.on_policy = None
 
     def get_value(self, action_key):
@@ -606,7 +619,7 @@ class TDLearner(Player):
         return value
 
     def save_action(self, game, action_key):
-        """Adds key action_key to a list of keys stored in dictionary
+        """Adds action_key to a list of keys stored in dictionary
         self.saved_game_actions for each game being played.
         """
 
@@ -649,6 +662,12 @@ class TDLearner(Player):
 
         return role, position
 
+    def make_move(self, game, role, show=False):
+
+        super(TDLearner, self).make_move(game, role, show=show)
+
+        self.made_last_move[game] = game.player_made_last_move()
+
     def reward(self, game, role, reward, show=False):
         """Update TDLearner's value function based on reward from
         game.
@@ -660,24 +679,37 @@ class TDLearner(Player):
             show (bool): Print a message if True.
         """
 
-        if self.updates_on:
-            # Retrieve state change and value from last move
-            last_action_key = self.saved_game_actions[game][-1]
+        if self.updates_on and self.on_policy is True:
 
-            if game.game_over:
-                # Treat reward as a terminal value for this state
-                # And replace any TD estimate of the value
-                self.value_function[last_action_key] = reward
+            # Retrieve previous actions in the game
+            actions = self.saved_game_actions[game]
 
-            if self.on_policy is True:
-                # Update value function
-                if len(self.saved_game_actions[game]) > 1:
-                    previous_action_key = self.saved_game_actions[game][-2]
-                    self.value_function[previous_action_key] = reward + (
-                        (1 - self.learning_rate) *
-                        self.get_value(previous_action_key) +
-                        self.learning_rate * self.get_value(last_action_key)
+            # TODO: Need to set value_function[actions[-1]]
+            # to zero if it is a terminal state
+            # Do this in gameover method maybe?
+
+            # Need at least 2 actions for value update
+            if len(actions) > 1:
+
+                # Set current state-value to zero if the last
+                # move was made
+                if self.made_last_move[game]:
+                    current_state_value = 0.0
+                else:
+                    current_state_value = self.value_function[actions[-1]]
+
+                # TD value function update
+                #import pdb;pdb.set_trace()
+                self.value_function[actions[-2]] = \
+                    self.get_value(actions[-2]) + self.learning_rate*(
+                            reward + self.gamma*current_state_value -
+                            self.get_value(actions[-2])
                     )
+
+            # Finally, set last state-value to reward if the
+            # move to terminal state was made by this player
+            if self.made_last_move[game]:
+                self.value_function[actions[-1]] = reward
 
         if show:
             print("Role %s got %s reward." % (role, reward))
@@ -695,6 +727,7 @@ class TDLearner(Player):
 
         # Delete list of previous game states
         del self.saved_game_actions[game]
+        del self.made_last_move[game]
 
     def copy(self, name):
 
@@ -987,7 +1020,7 @@ class GameController:
             # Get reward(s) from game
             rewards = self.game.get_rewards()
 
-            # Send reward(s) to players
+            # Send reward(s) to all players
             for role, reward in rewards.items():
                 self.players_by_role[role].reward(self.game, role, reward)
 

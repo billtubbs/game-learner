@@ -369,6 +369,9 @@ class TicTacToeGame:
         game so it sends a zero reward to each player after their
         opponent has made their move."""
 
+        # TODO: Shouldn't really issue reward to 2nd player after first
+        # move of game
+
         return {self.turn: 0.0}
 
     def get_terminal_rewards(self):
@@ -1292,45 +1295,38 @@ def test_player(player, game=TicTacToeGame, seed=1):
 def main():
     """Code to demonstrate use of this module."""
 
-    n = 5
-    print("\nPlay Tic-Tac-Toe (Noughts and Crosses) against %d\n"
-          "trained computer algorithms." % n)
-    computer_players = [TDLearner("TD%02d" % i) for i in range(n)]
-
+    print("\nPlay Tic-Tac-Toe (Noughts and Crosses) against the"
+          "computer algorithm.")
+    computer_player = TDLearner("TD")
     name = input("Enter your name: ")
     human_player = HumanPlayer(name)
+    n_iterations = 1000
 
     while True:
-        train_computer_players(computer_players, 1000)
 
-        best_wins = max([p.games_won for p in computer_players])
-        best_players = [p for p in computer_players if
-                        p.games_won == best_wins]
-        if len(best_players) > 1:
-            best_losses = min([p.games_lost for p in best_players])
-            best_players = [p for p in best_players if
-                            p.games_lost == best_losses]
-            if len(best_players) > 1:
-                most_played = max([p.games_played for p in best_players])
-                best_players = [p for p in best_players if
-                                p.games_played == most_played]
-        best_player = random.choice(best_players)
-        print("Best player so far:", best_player)
+        # Train computer against itself
+        # To do this you need to make a clone with the
+        # same value function
+        opponent = TDLearner("TD-clone")
+        opponent.value_function = computer_player.value_function
 
+        print("Computer is playing %d games against a clone of "
+              "itself..." % n_iterations)
+        train_computer_players([computer_player, opponent],
+                               n_iterations)
+
+        print("Now play against it.")
         game = TicTacToeGame()
-        players = [human_player, best_player]
+        players = [human_player, computer_player]
         play_looped_games(game, players)
-        for p in computer_players:
-            # Slowly reduce the learning rate
-            p.learning_rate *= 0.9
-            p.off_policy_rate *= 0.9
+
+        # Slowly reduce the learning rate
+        computer_player.learning_rate *= 0.9
+        computer_player.off_policy_rate *= 0.9
+
         text = input("Press enter to do more training or q to quit: ")
         if text.lower() == 'q':
             break
-
-        computer_players = [best_player.copy("TD%02d" % i) for i in range(n)]
-        print("%d clones of %s made" % (n - 1, str(best_player)))
-
 
 if __name__ == "__main__":
     main()

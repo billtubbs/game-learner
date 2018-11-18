@@ -184,3 +184,46 @@ _ _ _
 _ _ _
 Jack's turn (row, col):
 ```
+
+
+### TD algorithm performance
+
+The TDLearner is currently a strict implementation of the TD(0) algorithm which gradually 
+estimates the value of every possible game state by updating the current estimate
+based on the subsequent state's current value estimate (a process known as 'bootstrapping').
+
+Although it is slow, it will eventually learn an 'optimal policy', depending on who it is
+playing against and provided certain parameters are optimized.  To illustrate the learning
+rates and see how learning depends on what opponent the algorithm trains against, I ran
+an experiment where I trained four independent TDLearner's, one against a random player,
+one against an expert, and the remaining two against themselves and tested their 
+performance against an expert and a random player periodically over the training period.
+
+In this experiment, the parameters for the TDLearners were set as follows:
+
+```
+learning_rate        0.25
+off_policy_rate      0.00
+initial_values       0.50
+```
+
+The following chart shows the results:
+
+<img src="images/learning_rates.png">
+
+Initially, TD 1, the TD algorithm playing against the expert, learns quickly but
+soon its performance plateaus.  This could be because the off-policy rate parameter
+was set to zero.  This means that the algorithm does not deliberately explore
+alternative moves.  It could also be because part of the performance test includes 
+games against a random-player which the algorithm does not experience in the 
+experiment (during the test, learning is turned off so the algorithm cannot benefit 
+from the test experience).
+
+The TD 2 player takes a while to get going but does very well playing against
+another TD player, reaching a performance that is not far off expert-level after
+10,000 games.  The TD 3 player playing against a random player learns much more
+slowly but eventually overtakes the player that only plays against the expert.  
+This is probably because it experiences a broader range of states including some
+expert moves that the random player will eventually make 'by accident'.
+
+

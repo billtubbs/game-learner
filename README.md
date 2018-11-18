@@ -196,14 +196,14 @@ process known as 'bootstrapping').
 Although it is slow, it will eventually learn an 'optimal policy', depending on who it is
 playing against and provided certain parameters are optimized.  To illustrate the learning
 rates and see how learning depends on what opponent the algorithm trains against, I ran
-an experiment where four independent TDLearner's are trained in parallel, one against a
+an experiment where four independent TD learner's are trained in parallel, one against a
 random player, one against an expert, and the remaining two against each other and tested
 the performance of each at regular intervals during the training process.  
 
 The performance score is based on a test in which 100 games are played, 50 against an 
 expert and 50 against a random player.
 
-In this experiment, the parameters for the TDLearners were set as follows:
+In this experiment, the parameters for the `TDLearner` objects were initialized as follows:
 
 ```
 learning_rate        0.25
@@ -229,8 +229,10 @@ from the test experience).
 The TD 2 player takes a while to get going but does very well playing against
 another TD player, reaching a performance that is not far off expert-level after
 10,000 games.  The TD 3 player playing against a random player learns much more
-slowly but eventually overtakes the player that only plays against the expert.  
+slowly but eventually overtakes the player that only plays against the expert.
 This is probably because it experiences a broader range of states including some
-expert moves that the random player will eventually make 'by accident'.
+expert moves that the random player will eventually make 'by accident' (the fact
+that the random player sometimes makes expert moves is also the reason why the
+expert player does not always score 100% in the test).
 
 

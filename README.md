@@ -189,15 +189,19 @@ Jack's turn (row, col):
 ### TD algorithm performance
 
 The TDLearner is currently a strict implementation of the TD(0) algorithm which gradually 
-estimates the value of every possible game state by updating the current estimate
-based on the subsequent state's current value estimate (a process known as 'bootstrapping').
+estimates the value of every possible game state by updating the current estimate of the
+value of each state it encounters using the current estimate of the subsequent state (a
+process known as 'bootstrapping').
 
 Although it is slow, it will eventually learn an 'optimal policy', depending on who it is
 playing against and provided certain parameters are optimized.  To illustrate the learning
 rates and see how learning depends on what opponent the algorithm trains against, I ran
-an experiment where I trained four independent TDLearner's, one against a random player,
-one against an expert, and the remaining two against themselves and tested their 
-performance against an expert and a random player periodically over the training period.
+an experiment where four independent TDLearner's are trained in parallel, one against a
+random player, one against an expert, and the remaining two against each other and tested
+the performance of each at regular intervals during the training process.  
+
+The performance score is based on a test in which 100 games are played, 50 against an 
+expert and 50 against a random player.
 
 In this experiment, the parameters for the TDLearners were set as follows:
 
@@ -207,7 +211,10 @@ off_policy_rate      0.00
 initial_values       0.50
 ```
 
-The following chart shows the results:
+This combination of values produced the best performance against an expert player after 2000 
+games.
+
+The following chart shows the learning curves:
 
 <img src="images/learning_rates.png">
 

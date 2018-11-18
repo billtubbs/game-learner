@@ -7,10 +7,11 @@ and Barto's book Reinforcement Learning: An Introduction.
 
 Value function update method:
 
-V (s) ← V (s) + α[V (s′) − V (s)]
+V(s) ← V(s) + α[reward + γV(s′) − V(s)]
 
 Classes defined in `gamelearner.py`:
 
+- `Player` - parent class for all players
 - `TicTacToeGame` - the game dynamics
 - `HumanPlayer` - an interface to allow humans to play a game
 - `TDLearner` - a simple TD learning algorithm that learns to play from experience
@@ -68,11 +69,11 @@ on.
 ```
 $ python gamelearner.py
 
-Play Tic-Tac-Toe (Noughts and Crosses) against 5
-trained computer algorithms.
+Play Tic-Tac-Toe (Noughts and Crosses) against the computer.
 Enter your name: Joe
+Computer is playing 1000 games against a clone of itself...
 
-Training 5 computer players...
+Training 2 computer players...
 0 games completed
 100 games completed
 200 games completed
@@ -85,19 +86,15 @@ Training 5 computer players...
 900 games completed
 
 Results:
-TD00: won 185, lost 183
-TD01: won 168, lost 163
-TD02: won 180, lost 168
-TD03: won 176, lost 187
-TD04: won 168, lost 176
-Draws: 42
-Best player so far: TDLearner('TD00')
+TD: won 432, lost 443, drew 125
+TD-clone: won 443, lost 432, drew 125
+Now play against it.
 
-Game of Tic Tac Toe with 2 players ['Joe', 'TD00']
+Game of Tic Tac Toe with 2 players ['Joe', 'TD']
 _ _ _
 _ _ _
 _ _ _
-Joe's turn (row, col):
+Joe's turn (row, col): 
 ```
 
 ### Training with an expert
@@ -122,8 +119,8 @@ Training 2 computer players...
 900 games completed
 
 Results:
-TD1: won 0, lost 338, drew 662
-EXPERT: won 338, lost 0, drew 662
+TD1: won 0, lost 613, drew 387
+EXPERT: won 613, lost 0, drew 387
 >>> train_computer_players(computer_players)
 
 Training 2 computer players...
@@ -139,8 +136,8 @@ Training 2 computer players...
 900 games completed
 
 Results:
-TD1: won 0, lost 160, drew 840
-EXPERT: won 160, lost 0, drew 840
+TD1: won 0, lost 230, drew 770
+EXPERT: won 230, lost 0, drew 770
 ```
 
 ### Performance metric
@@ -155,22 +152,22 @@ games against an expert player and a player that makes random moves.
 >>> expert_player = ExpertPlayer()
 >>> players = [td1, td2, random_player, expert_player]
 >>> for i in range(10):
-...     train_computer_players(players, 100, show=False)
+...     train_computer_players(players, 500, show=False)
 ...     td1_score = test_player(td1)
 ...     print("Score after %d games: %5.2f" % (td1.games_played, td1_score))
 ... 
-Score after 44 games:  0.03
-Score after 94 games:  0.05
-Score after 144 games:  0.11
-Score after 185 games:  0.08
-Score after 238 games:  0.09
-Score after 288 games:  0.09
-Score after 342 games:  0.19
-Score after 382 games:  0.13
-Score after 429 games:  0.15
-Score after 475 games:  0.08
+Score after 258 games:  0.02
+Score after 521 games:  0.04
+Score after 757 games:  0.06
+Score after 997 games:  0.11
+Score after 1240 games:  0.15
+Score after 1494 games:  0.18
+Score after 1738 games:  0.20
+Score after 1978 games:  0.48
+Score after 2234 games:  0.29
+Score after 2479 games:  0.35
 >>> test_player(expert_player)
-0.96
+0.98
 ```
 
 ### Human-only play

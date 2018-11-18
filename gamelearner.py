@@ -568,7 +568,7 @@ class HumanPlayer(Player):
 
 
 class TDLearner(Player):
-    def __init__(self, name="TD", learning_rate=0.25, gamma=1.0,
+    def __init__(self, name="TD", learning_rate=0.1, gamma=1.0,
                  off_policy_rate=0.1, initial_value=0.5,
                  value_function=None, use_afterstates=True):
         """Tic-Tac-Toe game player that uses temporal difference (TD)
@@ -1295,8 +1295,8 @@ def test_player(player, game=TicTacToeGame, seed=1):
 def main():
     """Code to demonstrate use of this module."""
 
-    print("\nPlay Tic-Tac-Toe (Noughts and Crosses) against the"
-          "computer algorithm.")
+    print("\nPlay Tic-Tac-Toe (Noughts and Crosses) against the "
+          "computer.")
     computer_player = TDLearner("TD")
     name = input("Enter your name: ")
     human_player = HumanPlayer(name)

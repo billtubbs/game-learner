@@ -7,7 +7,7 @@ and Barto's book Reinforcement Learning: An Introduction.
 
 Value function update method:
 
-V (s) ← V (s) + α[V (s′) − V (s)]
+V(s) ← V(s) + α[reward + γV(s′) − V(s)]
 
 Classes defined in `gamelearner.py`:
 

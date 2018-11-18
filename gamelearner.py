@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Demonstration of the TD(0) reinforcement learning algorithm
-described in Chapter 1 of the draft 2nd edition of Sutton and
+described in Chapters 1 and 6 of the 2nd edition of Sutton and
 Barto's book Reinforcement Learning: An Introduction.
 
 Algorithm learns to play the Tic-Tac-Tie (noughts and crosses)
@@ -8,13 +8,14 @@ game. It can be trained against itself or against an expert
 algorithm.
 """
 
-# TODO:
+# TODO list:
 # - for one-player games it doesn't need to use a game's
 #    turn and player iterator attributes
-# - how to update with multiple or continuous rewards?
-# - no need to add initial values to value function
 # - TD Learner does not need to memorize previous states
-#   Can get them from the game
+#   Could get them from the game?
+# - Separate value estimation (prediction) from behaviour
+# - Add other methods - n-step TD, monte-carlo, DP
+# - Add other methods - Sarsa
 # - create a game.make_moves method
 # - Are there proven ways to reduce learning_rate?
 # - Allow player to be initialised from pickle file

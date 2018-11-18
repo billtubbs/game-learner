@@ -235,4 +235,11 @@ expert moves that the random player will eventually make 'by accident' (the fact
 that the random player sometimes makes expert moves is also the reason why the
 expert player does not always score 100% in the test).
 
+By the end of the experiment, TD learners 2 and 3 have around 4,680 state-value
+estimates in memory whereas TD 1 had only experienced about 910 states playing
+against the expert.
 
+The histogram below shows the distribution of values in the value function for
+TD 2.
+
+<img src="images/values_TD 2_hist.png">

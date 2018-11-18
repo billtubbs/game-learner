@@ -11,6 +11,7 @@ V(s) ← V(s) + α[reward + γV(s′) − V(s)]
 
 Classes defined in `gamelearner.py`:
 
+- `Player` - parent class for all players
 - `TicTacToeGame` - the game dynamics
 - `HumanPlayer` - an interface to allow humans to play a game
 - `TDLearner` - a simple TD learning algorithm that learns to play from experience

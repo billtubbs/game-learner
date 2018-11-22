@@ -9,6 +9,9 @@ algorithm.
 """
 
 # TODO list:
+# - game.next_state is basically the environment dynamics
+#   should re-design so you can use it independent of self.
+#   same for available_moves.  Should they be class methods?
 # - for one-player games it doesn't need to use a game's
 #    turn and player iterator attributes
 # - TD Learner does not need to memorize previous states
@@ -272,15 +275,19 @@ class TicTacToeGame:
 
         return list(zip(x, y))
 
-    def update_state(self, move, state=None):
-        """Updates the game state with the move to be taken.
+    def next_state(self, state, move):
+        """Returns the next state of the game if move were to be
+        taken from current game state or from state if provided.
 
         Args:
+            state (np.ndarray): Array (size (3, 3)) of game state or if
+                not provided the current game state will be used.
             move (tuple): Tuple of length 2 containing the player role
                 and the move (role, position). Position is also a tuple
                 (row, col).
-            state (np.ndarray): Array (size (3, 3)) of game state or if
-                not provided the current game state will be used.
+
+        Returns:
+            next_state (np.ndarray): copy of state after move made.
 
         Raises:
             AssertionError if the position is out of bounds or if
@@ -290,34 +297,23 @@ class TicTacToeGame:
         role, position = move
         assert 0 <= position[0] < self.size, self.help_text['Out of range']
         assert 0 <= position[1] < self.size, self.help_text['Out of range']
-
-        if state is None:
-            state = self.state
-
         assert state[position] == 0, self.help_text['Move not available']
-        state[position] = role
 
-    def next_state(self, move, state=None):
-        """Returns the next state of the game if move were to be
-        taken from current game state or from state if provided.
+        next_state = state.copy()
+        next_state[position] = role
+
+        return next_state
+
+    def update_state(self, move):
+        """Updates the game state with the move to be taken.
 
         Args:
             move (tuple): Tuple of length 2 containing the player role
                 and the move (role, position). Position is also a tuple
                 (row, col).
-            state (np.ndarray): Array (size (3, 3)) of game state or if
-                not provided the current game state will be used.
-
-        Returns:
-            next_state (np.ndarray): copy of state after move made.
         """
 
-        if state is None:
-            state = self.state
-        next_state = state.copy()
-        self.update_state(move, state=next_state)
-
-        return next_state
+        self.state = self.next_state(self.state, move)
 
     def make_move(self, move, show=False):
         """Update the game state with a new move.
@@ -365,10 +361,11 @@ class TicTacToeGame:
         self.turn = next(self.player_iterator)  # TODO: Only works for 2 player games!
 
     def get_rewards(self):
-        """Returns any rewards at the current time step for players.
-        In TicTacToe, there are no rewards until the end of the
-        game so it sends a zero reward to each player after their
-        opponent has made their move."""
+        """Returns any rewards at the current time step for
+        players.  In TicTacToe, there are no rewards until the
+        end of the game so it sends a zero reward to each
+        player after their opponent has made their move.
+        """
 
         # TODO: Shouldn't really issue reward to 2nd player after first
         # move of game
@@ -376,10 +373,9 @@ class TicTacToeGame:
         return {self.turn: 0.0}
 
     def get_terminal_rewards(self):
-        """Returns the rewards at the end of the game for both players.
-        In TicTacToe, there are no rewards until the end of the
-        game but it sends a zero reward to each player after their
-        opponent has made their move."""
+        """Returns the rewards at the end of the game for both
+        players.
+        """
 
         assert self.game_over
 
@@ -625,7 +621,7 @@ class TDLearner(Player):
             # Random off-policy move
             self.on_policy = False
             position = random.choice(available_positions)
-            next_state = game.next_state((role, position))
+            next_state = game.next_state(game.state, (role, position))
             next_state_key = game.generate_state_key(next_state, role)
 
         else:
@@ -635,7 +631,7 @@ class TDLearner(Player):
             # Uses 'after-state' values
             options = []
             for position in available_positions:
-                next_state = game.next_state((role, position))
+                next_state = game.next_state(game.state, (role, position))
                 next_state_key = game.generate_state_key(next_state, role)
                 action_value = self.get_value(next_state_key)
                 options.append((action_value, position, next_state_key))
@@ -765,11 +761,13 @@ def winning_positions(game, role, available_positions=None, state=None):
 
     if available_positions is None:
         available_positions = game.available_moves(state=state)
+    if state is None:
+        state = game.state
 
     positions = []
     for position in available_positions:
 
-        next_state = game.next_state((role, position), state=state)
+        next_state = game.next_state(state, (role, position))
         game_over, winner = game.check_game_state(next_state, role)
         if winner == role:
             positions.append(position)
@@ -794,13 +792,16 @@ def fork_positions(game, role, available_positions, state=None):
         positions (list): List of fork positions
     """
 
+    if state is None:
+        state = game.state
+
     positions = []
     for p1 in available_positions:
-        next_state = game.next_state((role, p1), state=state)
+        next_state = game.next_state(state, (role, p1))
         remaining_positions = game.available_moves(state=next_state)
         p2s = []
         for p2 in remaining_positions:
-            state2 = game.next_state((role, p2), state=next_state)
+            state2 = game.next_state(next_state, (role, p2))
             game_over, winner = game.check_game_state(state2, role)
             if winner == role:
                 p2s.append(p2)
@@ -810,7 +811,7 @@ def fork_positions(game, role, available_positions, state=None):
     return positions
 
 
-class ExpertPlayer(Player):
+class TicTacToeExpert(Player):
     """Optimal Tic-Tac-Toe game player that is unbeatable."""
 
     def __init__(self, name="EXPERT", seed=None):
@@ -861,7 +862,7 @@ class ExpertPlayer(Player):
             if opponent_forks:
                 positions = []
                 for p1 in available_moves:
-                    next_state = game.next_state((role, p1))
+                    next_state = game.next_state(game.state, (role, p1))
                     p2s = winning_positions(game, role, state=next_state)
                     if p2s:
                         assert len(p2s) == 1, "Expert code needs debugging."
@@ -1271,7 +1272,7 @@ def test_player(player, game=TicTacToeGame, seed=1):
 
     # Instantiate two computer opponents
     random_player = RandomPlayer(seed=seed)
-    expert_player = ExpertPlayer(seed=seed)
+    expert_player = TicTacToeExpert(seed=seed)
     opponents = [random_player] * 50 + [expert_player] * 50
 
     # Shuffle with independent random number generator

@@ -15,7 +15,7 @@ Classes defined in `gamelearner.py`:
 - `TicTacToeGame` - the game dynamics
 - `HumanPlayer` - an interface to allow humans to play a game
 - `TDLearner` - a simple TD learning algorithm that learns to play from experience
-- `ExpertPlayer` - computer algorithm to play optimally - should be unbeatable [according to wikipedia](https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy)
+- `TicTacToeExpert` - computer algorithm to play optimally - should be unbeatable [according to wikipedia](https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy)
 - `RandomPlayer` - computer player that makes random moves
 - `GameController` - controls a game between two players
 
@@ -103,7 +103,7 @@ To use the expert player to train a TD Learner player you can use this function:
 
 ```
 >>> from gamelearner import *
->>> computer_players = [TDLearner("TD1"), ExpertPlayer("EXPERT")]
+>>> computer_players = [TDLearner("TD1"), TicTacToeExpert("EXPERT")]
 >>> train_computer_players(computer_players)
 
 Training 2 computer players...
@@ -149,7 +149,7 @@ games against an expert player and a player that makes random moves.
 >>> from gamelearner import *
 >>> td1, td2 = [TDLearner("TD%d" % i) for i in range(2)]
 >>> random_player = RandomPlayer()
->>> expert_player = ExpertPlayer()
+>>> expert_player = TicTacToeExpert()
 >>> players = [td1, td2, random_player, expert_player]
 >>> for i in range(10):
 ...     train_computer_players(players, 500, show=False)

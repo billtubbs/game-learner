@@ -381,6 +381,10 @@ class TicTacToeGame:
 
         if self.winner:
 
+            # TODO: Last player to move should get reward from
+            # get_rewards().  Only the other player needs a
+            # special way to get their reward.
+
             # Winner's reward
             rewards = {self.winner: 1.0}
 

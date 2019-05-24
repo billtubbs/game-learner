@@ -226,8 +226,8 @@ games against a random-player which the algorithm does not experience in the
 experiment (during the test, learning is turned off so the algorithm cannot benefit 
 from the test experience).
 
-TD player #2 takes a while to get going but does very well playing against 10,000 
-another TD player, reaching a performance that is not far off expert-level after
+TD player #2 takes a while to get going but does very well playing against another 
+TD player, reaching a performance that is not far off expert-level after 10,000 
 games.  The "TD 0" player, playing against a random player, learns much more
 slowly but eventually overtakes the player that only plays against the expert.
 This is probably because it experiences a broader range of states including some

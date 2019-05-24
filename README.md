@@ -226,16 +226,16 @@ games against a random-player which the algorithm does not experience in the
 experiment (during the test, learning is turned off so the algorithm cannot benefit 
 from the test experience).
 
-The TD 2 player takes a while to get going but does very well playing against
+TD player #2 takes a while to get going but does very well playing against 10,000 
 another TD player, reaching a performance that is not far off expert-level after
-10,000 games.  The TD 3 player playing against a random player learns much more
+games.  The "TD 0" player, playing against a random player, learns much more
 slowly but eventually overtakes the player that only plays against the expert.
 This is probably because it experiences a broader range of states including some
 expert moves that the random player will eventually make 'by accident' (the fact
 that the random player sometimes makes expert moves is also the reason why the
 expert player does not always score 100% in the test).
 
-By the end of the experiment, TD learners 2 and 3 have around 4,680 state-value
+By the end of the experiment, TD learners #2 and #3 have around 4,680 state-value
 estimates in memory whereas TD 1 had only experienced about 910 states playing
 against the expert.
 

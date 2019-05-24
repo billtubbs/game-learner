@@ -441,7 +441,7 @@ class TicTacToeGame:
                 game_over, winner = True, role
                 break
 
-        if np.sum(state == 0) == 0:
+        if winner is None and np.all(state > 0):
             game_over = True
 
         return game_over, winner

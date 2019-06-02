@@ -14,8 +14,8 @@ algorithm.
 #   same for available_moves.  Should they be class methods?
 # - for one-player games it doesn't need to use a game's
 #    turn and player iterator attributes
-# - TD Learner does not need to memorize previous states
-#   Could get them from the game?
+# - Make a generic Game (or Environment/System) class and then
+#   inherit TicTacToeGame from that (in a separate file)
 # - Separate value estimation (prediction) from behaviour
 # - Add other methods - n-step TD, monte-carlo, DP
 # - Add other methods - Sarsa
@@ -32,10 +32,6 @@ import random
 import datetime
 import pickle
 from ast import literal_eval
-
-__author__ = "Bill Tubbs"
-__date__ = "October, 2018"
-__version__ = "1.1"
 
 
 class Player:
@@ -203,6 +199,29 @@ class TicTacToeGame:
         'Number of players': "This game requires 2 players.",
         'Out of range': "Row and column must be in range 0 to %d." % (size - 1)
     }
+
+    # These are array indices used by check_game_state method
+    row_idxs = np.array([
+        (0, 0, 0),
+        (1, 1, 1),
+        (2, 2, 2),
+        (0, 1, 2),
+        (0, 1, 2),
+        (0, 1, 2),
+        (0, 1, 2),
+        (0, 1, 2),
+    ])
+
+    col_idxs = np.array([
+        (0, 1, 2),
+        (0, 1, 2),
+        (0, 1, 2),
+        (0, 0, 0),
+        (1, 1, 1),
+        (2, 2, 2),
+        (0, 1, 2),
+        (2, 1, 0)
+    ])
 
     def __init__(self, moves=None):
         """Initialize a game.
@@ -399,7 +418,7 @@ class TicTacToeGame:
 
         return rewards
 
-    def check_game_state(self, state=None, role=None):
+    def check_game_state(self, state=None, role=None, calc=False):
         """Check the game state provided to see whether someone
         has won or if it is draw.
 
@@ -409,6 +428,7 @@ class TicTacToeGame:
                 actual game state (self.state).
             role (int): If specified, only check for a win by this
                 game role.
+            calc (bool):
 
         returns:
             game_over, winner (bool, bool): If there is a winner,
@@ -427,19 +447,28 @@ class TicTacToeGame:
         else:
             roles = self.roles
 
-        # ~90% of execution time in this function
-        # TODO: Ways to speed this up?  Call it less?
-        # Idea: Could make a 3D array of win moves
-        for role in roles:
-            positions = (state == role)
-            if any((
-                    np.any(positions.sum(axis=0) == 3),
-                    np.any(positions.sum(axis=1) == 3),
-                    (np.diagonal(positions).sum() == 3),
-                    (np.diagonal(np.fliplr(positions)).sum() == 3)
-            )):
-                game_over, winner = True, role
-                break
+        if calc is False:
+            # Check for a win state using previously prepared
+            # array indices
+            lines = state[self.row_idxs, self.col_idxs]
+            for role in roles:
+                if ((lines == role).sum(axis=1) == 3).any():
+                    game_over, winner = True, role
+                    break
+
+        else:
+            # This alternative method checks for a win using numpy
+            # methods - reliable but not as fast as method above
+            for role in roles:
+                positions = (state == role)
+                if any((
+                        np.any(positions.sum(axis=0) == 3),
+                        np.any(positions.sum(axis=1) == 3),
+                        (np.diagonal(positions).sum() == 3),
+                        (np.diagonal(np.fliplr(positions)).sum() == 3)
+                )):
+                    game_over, winner = True, role
+                    break
 
         if winner is None and np.all(state > 0):
             game_over = True
@@ -1237,8 +1266,8 @@ def play_looped_games(game, players, move_first=0, n=None,
                 break
 
         if prompt:
-            text = input("Press enter to play again or s to stop: ")
-            if text.lower() == 's':
+            text = input("Press enter to play again or 's' to stop: ")
+            if text.strip().lower() == 's':
                 break
 
         ctrl.reset()
@@ -1277,9 +1306,9 @@ def test_player(player, game=TicTacToeGame, seed=1):
     # Instantiate two computer opponents
     random_player = RandomPlayer(seed=seed)
     expert_player = TicTacToeExpert(seed=seed)
-    opponents = [random_player] * 50 + [expert_player] * 50
 
-    # Shuffle with independent random number generator
+    # Make a shuffled list of the opponents
+    opponents = [random_player]*50 + [expert_player]*50
     random.Random(seed).shuffle(opponents)
 
     game = game()
@@ -1298,8 +1327,31 @@ def test_player(player, game=TicTacToeGame, seed=1):
     return score
 
 
+def unit_tests(show=False):
+
+    if show:
+        print("Testing code...")
+
+    # Test methods for checking game state (should be identical)
+    game = TicTacToeGame()
+    for i in range(5):
+        if i == 0:
+            state = np.zeros((3, 3), dtype=int)
+        else:
+            state = np.random.randint(0, 3, size=9).reshape((3, 3))
+        check1 = game.check_game_state(state)
+        check2 = game.check_game_state(state, calc=True)
+        assert np.array_equal(check1, check2), "TicTacToeGame.check_game_state error"
+
+    if show:
+        print("Testing complete.")
+
+
 def main():
     """Code to demonstrate use of this module."""
+
+    # First run the unit tests to make sure things are working
+    unit_tests()
 
     print("\nPlay Tic-Tac-Toe (Noughts and Crosses) against the "
           "computer.")
@@ -1330,8 +1382,8 @@ def main():
         computer_player.learning_rate *= 0.9
         computer_player.off_policy_rate *= 0.9
 
-        text = input("Press enter to do more training or q to quit: ")
-        if text.lower() == 'q':
+        text = input("Press enter to do more training or 'q' to quit: ")
+        if text.strip().lower() == 'q':
             break
 
 if __name__ == "__main__":

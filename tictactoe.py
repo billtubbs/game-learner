@@ -12,7 +12,6 @@ import numpy as np
 import itertools
 import random
 import datetime
-import unittest
 from gamelearner import Environment, GameController, Player, HumanPlayer, \
                         RandomPlayer, TDLearner
 
@@ -107,7 +106,6 @@ class TicTacToeGame(Environment):
         self.turn = next(self.player_iterator)
         self.state = np.zeros(self.shape, dtype='b')
         self.winner = None
-        self.game_over = False
 
     def show_state(self):
         """Display the current state of the board."""
@@ -146,11 +144,15 @@ class TicTacToeGame(Environment):
             next_state (np.ndarray): copy of state after move made.
 
         Raises:
+            ValueError if it is not role's turn.
             AssertionError if the position is out of bounds or if
             there is already a move in that position.
         """
 
         role, position = move
+        if role != self.turn:
+            raise ValueError(f"It is not {role}'s turn.")
+
         assert 0 <= position[0] < self.size, self.help_text['Out of range']
         assert 0 <= position[1] < self.size, self.help_text['Out of range']
         assert state[position] == 0, self.help_text['Move not available']
@@ -175,33 +177,12 @@ class TicTacToeGame(Environment):
         """Update the game state with a new move.
 
         Args:
-            move (tuple): Tuple of length 2 containing the player role
-                and the move (role, position). Position is also a tuple
-                (row, col).
+            move (tuple): Tuple of length 2 containing a
+                player role and action (role, action).
             show (bool): Print a message if True.
-
-        TODO: This method may not need overloading if re-written in base class
         """
 
-        assert self.winner is None, "Player %s has already won" % \
-                                    str(self.winner)
-
-        role, position = move
-        if role != self.turn:
-            if role not in self.roles:
-                raise ValueError("%d is not a valid player role." % role)
-            else:
-                raise ValueError("It is not player %d's turn." % role)
-
-        self.update_state(move)
-        self.moves.append(move)
-
-        if show:
-            print("Player %s made move %s" % (str(role), str(position)))
-
-        self.check_if_game_over(role)
-        if self.game_over:
-            self.stop()
+        super().make_move(move, show)
         self.turn = next(self.player_iterator)
 
     def reverse_move(self, show=False):
@@ -209,15 +190,13 @@ class TicTacToeGame(Environment):
 
         Args:
             show (bool): Print a message if True.
-        TODO: This method should not need overloading.
+        TODO: This method may not need overloading. See gamelearner.py.
         """
 
         last_move = self.moves.pop()
-        self.state[last_move[1]] = 0
-        if show:
-            print("Last move reversed")
-        self.check_if_game_over()
+        self.state[last_move[1]] = 0  # Removes last move from board
         self.turn = next(self.player_iterator)  # TODO: Only works for 2 player games!
+        self.check_if_game_over()
 
     def get_rewards(self):
         """Returns any rewards at the current time step for
@@ -240,9 +219,8 @@ class TicTacToeGame(Environment):
 
         if self.winner:
 
-            # TODO: Last player to move should get reward from
-            # get_rewards().  Only the other player needs a
-            # special way to get their reward.
+            # TODO: Last player to move should get reward from get_rewards().
+            # Only the other player needs a special way to get their reward.
 
             # Winner's reward
             rewards = {self.winner: 1.0}
@@ -314,25 +292,6 @@ class TicTacToeGame(Environment):
             game_over = True
 
         return game_over, winner
-
-    def check_if_game_over(self, role=None):
-        """Check to see whether someone has won or if it is draw.
-        If the game is over, game_over will be set to True.
-        If there is a winner, the attribute winner will be set
-        to the winning role. This method is automatically called
-        by make_move.
-
-        Args:
-            role (int): If specified, only check for a win by this
-            game role.
-
-        Returns:
-            True if there is a winner else False.
-        """
-
-        self.game_over, self.winner = self.check_game_state(role=role)
-
-        return self.game_over
 
     def generate_state_key(self, state, role):
         """Converts a game state (or afterstate) into a string of
@@ -747,107 +706,8 @@ def play_looped_games(game, players, move_first=0, n=None,
         wins += player.games_won
 
 
-class TestTicTacToeGame(unittest.TestCase):
-
-    def test_check_game_state(self):
-        """Test methods for checking game state (they should
-        be identical).
-        """
-
-        game = TicTacToeGame()
-        for i in range(5):
-            if i == 0:
-                state = np.zeros((3, 3), dtype=int)
-            else:
-                state = np.random.randint(0, 3, size=9).reshape((3, 3))
-            result1 = game.check_game_state(state)  # Numpy indexing method
-            result2 = game.check_game_state(state, calc=True)  # Numpy.sum method
-            self.assertEqual(result1, result2), "Error in TicTacToeGame.check_game_state"
-
-    def test_game_execution(self):
-        """Steps through one game of Tic-Tac-Toe checking
-        various attributes and methods.
-        """
-
-        game = TicTacToeGame()
-        self.assertEqual(game.roles, [1, 2])
-        self.assertTrue(
-            np.array_equal(game.state, np.zeros((game.size, game.size)))
-        )
-
-        # Make some moves
-        game.make_move((1, (0, 2)))
-        game.make_move((2, (0, 1)))
-        game.make_move((1, (1, 1)))
-        game.make_move((2, (2, 2)))
-
-        self.assertFalse(game.game_over)
-
-        state = np.array([
-            [0, 2, 1],
-            [0, 1, 0],
-            [0, 0, 2]
-        ])
-
-        self.assertTrue(
-            np.array_equal(game.state, state)
-        )
-
-        self.assertEqual(
-            game.moves, [(1, (0, 2)), (2, (0, 1)),
-                         (1, (1, 1)), (2, (2, 2))]
-        )
-
-        self.assertEqual(game.turn, 1)
-        self.assertEqual(
-            game.available_moves(), [(0, 0), (1, 0), (1, 2),
-                                     (2, 0), (2, 1)]
-        )
-
-        game.make_move((1, (2, 0)))
-        self.assertTrue(game.game_over)
-        self.assertEqual(game.winner, 1)
-
-        game.reverse_move()
-        self.assertTrue(np.array_equal(game.state, state))
-        self.assertTrue(game.winner is None)
-
-        with self.assertRaises(Exception) as context:
-            game.make_move((2, (1, 2)))
-        self.assertTrue("not player 2's turn" in str(context.exception))
-
-        # Make some more moves...
-        game.make_move((1, (1, 2)))
-        game.make_move((2, (2, 0)))
-        game.make_move((1, (0, 0)))
-        game.make_move((2, (1, 0)))
-        self.assertEqual(game.state[2, 1], 0)
-
-        game.make_move((1, (2, 1)))
-        self.assertTrue(game.game_over)
-        self.assertEqual(game.winner, None)
-
-    def test_generate_state_key(self):
-        """Test generate_state_key method of TicTacToeGame.
-        """
-
-        game = TicTacToeGame()
-        game.state[:] = [[1, 0, 0],
-                         [2, 0, 0],
-                         [0, 0, 1]]
-        self.assertEqual(
-            game.generate_state_key(game.state, 1), b'S--O----S'
-        )
-        self.assertEqual(
-            game.generate_state_key(game.state, 2), b'O--S----O'
-        )
-
-
 def main():
     """Code to demonstrate use of this module."""
-
-    # First run the unit tests to make sure things are working
-    unittest.main()
 
     print("\nPlay Tic-Tac-Toe (Noughts and Crosses) against the "
           "computer.")

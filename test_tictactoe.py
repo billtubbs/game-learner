@@ -75,7 +75,7 @@ class TestTicTacToe(unittest.TestCase):
 
         with self.assertRaises(Exception) as context:
             game.make_move((2, (1, 2)))
-        self.assertTrue("It is not 2's turn." in str(context.exception))
+        self.assertTrue("It is not player 2's turn." in str(context.exception))
 
         # Make some more moves...
         game.make_move((1, (1, 2)))

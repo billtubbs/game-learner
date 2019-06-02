@@ -129,7 +129,7 @@ class TicTacToeGame(Environment):
 
         return list(zip(x, y))
 
-    def next_state(self, state, move):
+    def next_state(self, state, move, role_check=True):
         """Returns the next state of the game if move were to be
         taken from current game state or from state if provided.
 
@@ -150,8 +150,9 @@ class TicTacToeGame(Environment):
         """
 
         role, position = move
-        if role != self.turn:
-            raise ValueError(f"It is not {role}'s turn.")
+        if role_check:
+            if role != self.turn:
+                raise ValueError(f"It is not player {role}'s turn.")
 
         assert 0 <= position[0] < self.size, self.help_text['Out of range']
         assert 0 <= position[1] < self.size, self.help_text['Out of range']
@@ -354,9 +355,10 @@ def winning_positions(game, role, available_positions=None, state=None):
         state = game.state
 
     positions = []
+    # Note: This is used to test different positions so it may not be role's
+    # actual turn so role-checking is turned off
     for position in available_positions:
-
-        next_state = game.next_state(state, (role, position))
+        next_state = game.next_state(state, (role, position), role_check=False)
         game_over, winner = game.check_game_state(next_state, role)
         if winner == role:
             positions.append(position)
@@ -385,12 +387,14 @@ def fork_positions(game, role, available_positions, state=None):
         state = game.state
 
     positions = []
+    # Note: This is used to test different positions so it may not be role's
+    # actual turn so role-checking is turned off
     for p1 in available_positions:
-        next_state = game.next_state(state, (role, p1))
+        next_state = game.next_state(state, (role, p1), role_check=False)
         remaining_positions = game.available_moves(state=next_state)
         p2s = []
         for p2 in remaining_positions:
-            state2 = game.next_state(next_state, (role, p2))
+            state2 = game.next_state(next_state, (role, p2), role_check=False)
             game_over, winner = game.check_game_state(state2, role)
             if winner == role:
                 p2s.append(p2)

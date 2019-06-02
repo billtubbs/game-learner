@@ -37,6 +37,7 @@ class TicTacToeGame(Environment):
     roles = [1, 2]
     possible_n_players = [2]
     marks = ['X', 'O']
+    terminal_rewards = {'win': 1.0, 'lose': 0.0, 'draw': 0.5}
 
     help_text = {
         'Move format': "row, col",
@@ -224,16 +225,16 @@ class TicTacToeGame(Environment):
             # Only the other player needs a special way to get their reward.
 
             # Winner's reward
-            rewards = {self.winner: 1.0}
+            rewards = {self.winner: self.terminal_rewards['win']}
 
             # Loser's reward
             for role in [r for r in self.roles if r != self.winner]:
-                rewards[role] = 0.0
+                rewards[role] = self.terminal_rewards['lose']
 
         else:
 
             # Rewards for a draw
-            rewards = {role: 0.5 for role in self.roles}
+            rewards = {role: self.terminal_rewards['draw'] for role in self.roles}
 
         return rewards
 

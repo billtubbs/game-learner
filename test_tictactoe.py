@@ -6,7 +6,7 @@ everything is working.
 import unittest
 import numpy as np
 
-from tictactoe import TicTacToeGame
+from tictactoe import TicTacToeGame, GameController, RandomPlayer
 
 class TestTicTacToe(unittest.TestCase):
 
@@ -38,11 +38,14 @@ class TestTicTacToe(unittest.TestCase):
 
         # Make some moves
         game.make_move((1, (0, 2)))
+
+        # Check rewards
+        self.assertEqual(game.get_rewards(), {2: 0.0})
         game.make_move((2, (0, 1)))
+        self.assertEqual(game.get_rewards(), {1: 0.0})
+
         game.make_move((1, (1, 1)))
         game.make_move((2, (2, 2)))
-
-        self.assertFalse(game.game_over)
 
         state = np.array([
             [0, 2, 1],
@@ -53,6 +56,8 @@ class TestTicTacToe(unittest.TestCase):
         self.assertTrue(
             np.array_equal(game.state, state)
         )
+        self.assertFalse(game.game_over)
+
 
         self.assertEqual(
             game.moves, [(1, (0, 2)), (2, (0, 1)),
@@ -68,6 +73,13 @@ class TestTicTacToe(unittest.TestCase):
         game.make_move((1, (2, 0)))
         self.assertTrue(game.game_over)
         self.assertEqual(game.winner, 1)
+
+        # Check terminal rewards
+        rewards = game.get_terminal_rewards()
+        self.assertEqual(
+            rewards, {1: game.terminal_rewards['win'],
+                      2: game.terminal_rewards['lose']}
+        )
 
         game.reverse_move()
         self.assertTrue(np.array_equal(game.state, state))
@@ -87,6 +99,11 @@ class TestTicTacToe(unittest.TestCase):
         game.make_move((1, (2, 1)))
         self.assertTrue(game.game_over)
         self.assertEqual(game.winner, None)
+        rewards = game.get_terminal_rewards()
+        self.assertEqual(
+            rewards, {1: game.terminal_rewards['draw'],
+                      2: game.terminal_rewards['draw']}
+        )
 
     def test_generate_state_key(self):
         """Test generate_state_key method of TicTacToeGame.
@@ -103,6 +120,20 @@ class TestTicTacToe(unittest.TestCase):
             game.generate_state_key(game.state, 2), b'O--S----O'
         )
 
+    def test_with_players(self):
+
+        game = TicTacToeGame()
+        players = [RandomPlayer(seed=1), RandomPlayer(seed=1)]
+        ctrl = GameController(game, players)
+        ctrl.play(show=False)
+        final_state = np.array([
+            [1, 2, 1],
+            [2, 1, 1],
+            [1, 2, 2]
+        ])
+        self.assertTrue(np.array_equal(ctrl.game.state, final_state))
+        self.assertEqual(game.game_over, 1)
+        self.assertEqual(game.winner, 1)
 
 if __name__ == '__main__':
     unittest.main()

@@ -11,7 +11,6 @@ algorithm.
 import numpy as np
 import itertools
 import random
-import datetime
 from gamelearner import Environment, GameController, Player, HumanPlayer, \
                         RandomPlayer, TDLearner
 
@@ -82,20 +81,10 @@ class TicTacToeGame(Environment):
         super().__init__(moves)
         self.n_players = 2
         self.winner = None
-        self.game_over = False
         self.player_iterator = itertools.cycle(self.roles)
         self.turn = next(self.player_iterator)
-        self.state = np.zeros(self.shape, dtype='b')
-
-    def start(self):
-        """Record start time (self.start_time)."""
-
-        self.start_time = datetime.datetime.now()
-
-    def stop(self):
-        """Record end time (self.end_time)."""
-
-        self.end_time = datetime.datetime.now()
+        self.start_state = np.zeros(self.shape, dtype='b')
+        self.state = self.start_state
 
     def reset(self):
         """Set the state of the game back to the beginning
@@ -105,7 +94,7 @@ class TicTacToeGame(Environment):
         super().reset()
         self.player_iterator = itertools.cycle(self.roles)
         self.turn = next(self.player_iterator)
-        self.state = np.zeros(self.shape, dtype='b')
+        self.state = self.start_state
         self.winner = None
 
     def show_state(self):
@@ -611,7 +600,7 @@ def tictactoe_game(players, move_first=0, show=True):
     ctrl.play(show=show)
 
 
-def game_with_2_humans(names=("Player 1", "Player 2"), move_first=0,
+def tic_tac_toe_with_2_humans(game, names=("Player 1", "Player 2"), move_first=0,
                        n=1):
     """Demo of TicTacToeGame with two new human players.
 
@@ -626,89 +615,6 @@ def game_with_2_humans(names=("Player 1", "Player 2"), move_first=0,
     game = TicTacToeGame()
     players = [HumanPlayer(name) for name in names]
     play_looped_games(game, players, move_first=move_first, n=n)
-
-
-def train_computer_players(players, iterations=1000, show=True):
-    """Play repeated games with n computer players then play
-    against one of them.
-
-    Args:
-        players (list): List of at least 2 Player instances.
-        iterations (int): Number of iterations of training.
-        show (bool): Print progress messages and results if True.
-    """
-
-    n_players = TicTacToeGame.possible_n_players[0]
-    assert len(players) >= n_players, "Provide at least 2 players to train."
-
-    stats = {p: {'won': 0, 'lost': 0, 'played': 0} for p in players}
-
-    if show:
-        print("\nTraining %d computer players..." % len(players))
-    for i in range(iterations):
-        game = TicTacToeGame()
-        selected_players = random.sample(players, n_players)
-        ctrl = GameController(game, selected_players)
-        ctrl.play(show=False)
-        for player in selected_players:
-            stats[player]['played'] += 1
-            if game.winner:
-                if player == ctrl.players_by_role[game.winner]:
-                    stats[player]['won'] += 1
-                else:
-                    stats[player]['lost'] += 1
-        if show:
-            if i % 100 == 0:
-                print(i, "games completed")
-
-    if show:
-        print("\nResults:")
-        for player in players:
-            won, lost, played = (stats[player]['won'], stats[player]['lost'],
-                                 stats[player]['played'])
-            print("%s: won %d, lost %d, drew %d" % (player.name, won, lost,
-                                                    played - won - lost))
-
-
-def play_looped_games(game, players, move_first=0, n=None,
-                      prompt=True, show=True):
-    """Play repeated games between two players.  Displays a
-    summary of results at the end.
-
-    Args:
-        game (Game): Game instance (for example, TicTacToeGame)
-        players (list): List of 2 Player instances.
-        move_first (int): Index of player to start first.
-        n (int or None): Number of games to play.  If n=None,
-            it will loop indefinitely.
-        prompt (bool): If True, will prompt user each iteration
-            with option to stop or play again.
-        show (bool): Print messages if True.
-    """
-
-    ctrl = GameController(game, players, move_first=move_first)
-    while True:
-        print()
-        ctrl.play(show=show)
-
-        if n:
-            n -= 1
-            if n < 1:
-                break
-
-        if prompt:
-            text = input("Press enter to play again or 's' to stop: ")
-            if text.strip().lower() == 's':
-                break
-
-        ctrl.reset()
-
-    print("\nResults:")
-    wins = 0
-    for player in players:
-        items = (player.name, player.games_won, player.games_played)
-        print("Player %s won %d of %d games" % items)
-        wins += player.games_won
 
 
 def main():

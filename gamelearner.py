@@ -196,6 +196,7 @@ class Environment(ABC):
             for move in moves:
                 self.make_move(move)
             self.check_if_game_over()
+        self.state = None
 
     def start(self):
         """Records start time (self.start_time)."""
@@ -274,17 +275,17 @@ class Environment(ABC):
             show (bool): Print a message if True.
         """
 
-        assert self.game_over is not None, "Game is already over."
-
         role, action = move
         assert role in self.roles, f"{role.__repr__()} is not a " \
                                    "valid player role."
+
+        assert self.game_over is False, "Game is already over."
 
         self.update_state(move)
         self.moves.append(move)
 
         if show:
-            print(f"Player {role} made move {action}")
+            print(f"Player {role} made move {action.__repr__()}")
 
         self.check_if_game_over(role)
         if self.game_over:
@@ -802,3 +803,87 @@ class GameController:
         params = [self.game.__repr__(), self.players.__repr__()]
 
         return f"{self.__class__.__name__}({', '.join(params)})"
+
+
+def train_computer_players(game, players, iterations=1000, show=True):
+    """Play repeated games with n computer players then play
+    against one of them.
+
+    Args:
+        game (Environment): Game environment to play.
+        players (list): List of at least 2 Player instances.
+        iterations (int): Number of iterations of training.
+        show (bool): Print progress messages and results if True.
+    """
+
+    n_players = game.possible_n_players[0]
+    assert len(players) >= n_players, "Provide at least 2 players to train."
+
+    stats = {p: {'won': 0, 'lost': 0, 'played': 0} for p in players}
+
+    if show:
+        print("\nTraining %d computer players..." % len(players))
+    for i in range(iterations):
+        game.reset()
+        selected_players = random.sample(players, n_players)
+        ctrl = GameController(game, selected_players)
+        ctrl.play(show=False)
+        for player in selected_players:
+            stats[player]['played'] += 1
+            if game.winner:
+                if player == ctrl.players_by_role[game.winner]:
+                    stats[player]['won'] += 1
+                else:
+                    stats[player]['lost'] += 1
+        if show:
+            if i % 100 == 0:
+                print(i, "games completed")
+
+    if show:
+        print("\nResults:")
+        for player in players:
+            won, lost, played = (stats[player]['won'], stats[player]['lost'],
+                                 stats[player]['played'])
+            print("%s: won %d, lost %d, drew %d" % (player.name, won, lost,
+                                                    played - won - lost))
+
+
+def play_looped_games(game, players, move_first=0, n=None,
+                      prompt=True, show=True):
+    """Play repeated games between two players.  Displays a
+    summary of results at the end.
+
+    Args:
+        game (Game): Game instance (for example, TicTacToeGame)
+        players (list): List of 2 Player instances.
+        move_first (int): Index of player to start first.
+        n (int or None): Number of games to play.  If n=None,
+            it will loop indefinitely.
+        prompt (bool): If True, will prompt user each iteration
+            with option to stop or play again.
+        show (bool): Print messages if True.
+    """
+
+    ctrl = GameController(game, players, move_first=move_first)
+    while True:
+        print()
+        ctrl.play(show=show)
+
+        if n:
+            n -= 1
+            if n < 1:
+                break
+
+        if prompt:
+            text = input("Press enter to play again or 's' to stop: ")
+            if text.strip().lower() == 's':
+                break
+
+        ctrl.reset()
+
+    print("\nResults:")
+    wins = 0
+    for player in players:
+        items = (player.name, player.games_won, player.games_played)
+        print("Player %s won %d of %d games" % items)
+        wins += player.games_won

@@ -22,7 +22,8 @@ Classes defined in `gamelearner.py`:
 ### Example usage
 
 ```
->>> from gamelearner import *
+>>> from gamelearner import *  
+>>> from tictactoe import TicTacToeGame
 >>> game = TicTacToeGame()
 >>> players = [HumanPlayer("Joe"), TDLearner("TD")]
 >>> ctrl = GameController(game, players)
@@ -32,6 +33,7 @@ _ _ _
 _ _ _
 _ _ _
 Joe's turn (row, col): 0,0
+TD got 0.0 reward.
 X _ _
 _ _ _
 _ _ _
@@ -39,21 +41,36 @@ TD's turn (row, col): (0, 1)
 X O _
 _ _ _
 _ _ _
+Joe's turn (row, col): 0,1
+That position is not available.
+Try again.
 Joe's turn (row, col): 1,1
+TD got 0.0 reward.
 X O _
 _ X _
 _ _ _
-TD's turn (row, col): (2, 1)
+TD's turn (row, col): (1, 0)
 X O _
+O X _
+_ _ _
+Joe's turn (row, col): 2,1
+TD got 0.0 reward.
+X O _
+O X _
 _ X _
-_ O _
+TD's turn (row, col): (0, 2)
+X O O
+O X _
+_ X _
 Joe's turn (row, col): 2,2
+TD got 0.0 reward.
+TD got 0.0 reward.
 Joe you won!
-X O _
-_ X _
-_ O X
+X O O
+O X _
+_ X X
 Game over!
-Joe won
+Joe won in 7 moves
 ```
 
 Initially, the TDLearner makes random moves but gradually it updates its internal 
@@ -67,7 +84,7 @@ five new TD Learners which play another 1000 games against each other... and so
 on.
 
 ```
-$ python gamelearner.py
+$ python tictactoe.py
 
 Play Tic-Tac-Toe (Noughts and Crosses) against the computer.
 Enter your name: Joe
@@ -86,8 +103,8 @@ Training 2 computer players...
 900 games completed
 
 Results:
-TD: won 432, lost 443, drew 125
-TD-clone: won 443, lost 432, drew 125
+TD: won 413, lost 461, drew 126
+TD-clone: won 461, lost 413, drew 126
 Now play against it.
 
 Game of Tic Tac Toe with 2 players ['Joe', 'TD']
@@ -103,8 +120,10 @@ To use the expert player to train a TD Learner player you can use this function:
 
 ```
 >>> from gamelearner import *
+>>> from tictactoe import TicTacToeGame, TicTacToeExpert
+>>> game = TicTacToeGame()
 >>> computer_players = [TDLearner("TD1"), TicTacToeExpert("EXPERT")]
->>> train_computer_players(computer_players)
+>>> train_computer_players(game, computer_players)
 
 Training 2 computer players...
 0 games completed
@@ -121,7 +140,7 @@ Training 2 computer players...
 Results:
 TD1: won 0, lost 613, drew 387
 EXPERT: won 613, lost 0, drew 387
->>> train_computer_players(computer_players)
+>>> train_computer_players(game, computer_players)
 
 Training 2 computer players...
 0 games completed
@@ -136,38 +155,38 @@ Training 2 computer players...
 900 games completed
 
 Results:
-TD1: won 0, lost 230, drew 770
-EXPERT: won 230, lost 0, drew 770
+TD1: won 0, lost 225, drew 775
+EXPERT: won 225, lost 0, drew 775
+>>> 
 ```
 
-### Performance metric
+### Performance testing
 
 There is a also a test metric which tests an algorithm's performance playing
 games against an expert player and a player that makes random moves.
 
 ```
 >>> from gamelearner import *
->>> td1, td2 = [TDLearner("TD%d" % i) for i in range(2)]
->>> random_player = RandomPlayer()
->>> expert_player = TicTacToeExpert()
+>>> from tictactoe import TicTacToeGame, TicTacToeExpert, test_player
+>>> game = TicTacToeGame()
 >>> players = [td1, td2, random_player, expert_player]
 >>> for i in range(10):
-...     train_computer_players(players, 500, show=False)
+...     train_computer_players(game, players, 500, show=False)
 ...     td1_score = test_player(td1)
 ...     print("Score after %d games: %5.2f" % (td1.games_played, td1_score))
 ... 
-Score after 258 games:  0.02
-Score after 521 games:  0.04
-Score after 757 games:  0.06
-Score after 997 games:  0.11
-Score after 1240 games:  0.15
-Score after 1494 games:  0.18
-Score after 1738 games:  0.20
-Score after 1978 games:  0.48
-Score after 2234 games:  0.29
-Score after 2479 games:  0.35
+Score after 516 games:  0.03
+Score after 777 games:  0.07
+Score after 1010 games:  0.10
+Score after 1259 games:  0.16
+Score after 1515 games:  0.25
+Score after 1765 games:  0.27
+Score after 1998 games:  0.19
+Score after 2256 games:  0.31
+Score after 2495 games:  0.36
+Score after 2743 games:  0.34
 >>> test_player(expert_player)
-0.98
+0.96
 ```
 
 ### Human-only play
@@ -175,14 +194,14 @@ Score after 2479 games:  0.35
 If you want to play a game between two humans, call `game_with_2_humans()` as follows:
 
 ```
->>> from gamelearner import *
->>> game_with_2_humans(["Jack", "Jill"], move_first=0)
+>>> from tictactoe import tictactoe_with_2_humans
+>>> tictactoe_with_2_humans(["Jack", "Jill"], move_first=0)
 
-Game of Tic Tac Toe with 2 players ['Jack', 'Jill']
+Game of Tic Tac Toe with 2 players ['Player 1', 'Player 2']
 _ _ _
 _ _ _
 _ _ _
-Jack's turn (row, col):
+Player 1's turn (row, col): 
 ```
 
 
@@ -206,9 +225,9 @@ expert and 50 against a random player.
 In this experiment, the parameters for the `TDLearner` objects were initialized as follows:
 
 ```
-learning_rate        0.25
-off_policy_rate      0.00
-initial_values       0.50
+learning_rate        0.1
+off_policy_rate      0.0
+initial_values       0.5
 ```
 
 This combination of values produced the best performance against an expert player after 2000 

@@ -11,8 +11,7 @@ algorithm.
 import numpy as np
 import itertools
 import random
-from gamelearner import Environment, GameController, Player, HumanPlayer, \
-                        RandomPlayer, TDLearner
+from gamelearner import *
 
 
 class TicTacToeGame(Environment):
@@ -600,7 +599,7 @@ def tictactoe_game(players, move_first=0, show=True):
     ctrl.play(show=show)
 
 
-def tic_tac_toe_with_2_humans(game, names=("Player 1", "Player 2"), move_first=0,
+def tictactoe_with_2_humans(game, names=("Player 1", "Player 2"), move_first=0,
                        n=1):
     """Demo of TicTacToeGame with two new human players.
 
@@ -622,6 +621,7 @@ def main():
 
     print("\nPlay Tic-Tac-Toe (Noughts and Crosses) against the "
           "computer.")
+    game = TicTacToeGame()
     computer_player = TDLearner("TD")
     name = input("Enter your name: ")
     human_player = HumanPlayer(name)
@@ -637,7 +637,7 @@ def main():
 
         print("Computer is playing %d games against a clone of "
               "itself..." % n_iterations)
-        train_computer_players([computer_player, opponent],
+        train_computer_players(game, [computer_player, opponent],
                                n_iterations)
 
         print("Now play against it.")

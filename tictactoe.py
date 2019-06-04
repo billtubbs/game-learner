@@ -77,13 +77,13 @@ class TicTacToeGame(Environment):
                 the board position (row, col).
         """
 
-        super().__init__(moves)
         self.n_players = 2
         self.winner = None
         self.player_iterator = itertools.cycle(self.roles)
         self.turn = next(self.player_iterator)
         self.start_state = np.zeros(self.shape, dtype='b')
         self.state = self.start_state
+        super().__init__(moves)
 
     def reset(self):
         """Set the state of the game back to the beginning

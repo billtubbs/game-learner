@@ -190,13 +190,12 @@ class Environment(ABC):
 
         self.start_time = None
         self.end_time = None
-        self.moves = []
         self.game_over = False
+        self.moves = []
         if moves is not None:
             for move in moves:
                 self.make_move(move)
             self.check_if_game_over()
-        self.state = None
 
     def start(self):
         """Records start time (self.start_time)."""
@@ -213,10 +212,10 @@ class Environment(ABC):
         (no moves made).
         """
 
-        self.moves = []
-        self.game_over = False
         self.start_time = None
         self.end_time = None
+        self.game_over = False
+        self.moves = []
 
     @abstractmethod
     def show_state(self):

@@ -58,7 +58,6 @@ class TestTicTacToe(unittest.TestCase):
         )
         self.assertFalse(game.game_over)
 
-
         self.assertEqual(
             game.moves, [(1, (0, 2)), (2, (0, 1)),
                          (1, (1, 1)), (2, (2, 2))]
@@ -105,6 +104,22 @@ class TestTicTacToe(unittest.TestCase):
                       2: game.terminal_rewards['draw']}
         )
 
+    def test_initialize_game(self):
+        """Test use of moves argument when initializing a
+        new game.
+        """
+
+        moves = [(1, (0, 2)), (2, (0, 1)), (1, (1, 1)), (2, (2, 2))]
+        game = TicTacToeGame(moves=moves)
+        state = np.array([
+            [0, 2, 1],
+            [0, 1, 0],
+            [0, 0, 2]
+        ])
+        self.assertTrue(
+            np.array_equal(game.state, state)
+        )
+
     def test_generate_state_key(self):
         """Test generate_state_key method of TicTacToeGame.
         """
@@ -134,6 +149,7 @@ class TestTicTacToe(unittest.TestCase):
         self.assertTrue(np.array_equal(ctrl.game.state, final_state))
         self.assertEqual(game.game_over, 1)
         self.assertEqual(game.winner, 1)
+
 
 if __name__ == '__main__':
     unittest.main()

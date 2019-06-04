@@ -63,9 +63,15 @@ class RandomWalkGame(Environment):
         self.state = self.start_state
         self.winner = None
 
-    def show_state(self):
+    def show_state(self, simple=False):
 
-        print(self.state)
+        if simple:
+            print(self.state)
+        else:
+            # Displays the full random walk
+            states_to_show = [self.state] + self.terminal_states
+            print(' '.join((s if s in states_to_show else '_')
+                            for s in self.states))
 
     def available_moves(self, state=None):
 

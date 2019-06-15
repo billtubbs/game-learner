@@ -5,12 +5,15 @@ Barto's book Reinforcement Learning: An Introduction.
 """
 
 # TODO list:
-# - game.next_state is basically the environment dynamics
-#   should re-design so you can use it independent of self.
-#   same for available_moves.  Should they be class methods?
-# - for one-player games it doesn't need to use a game's
-#    turn and player iterator attributes
-# - Separate value estimation (prediction) from behaviour
+# - Separate value estimation (prediction) from behaviour:
+#     Need to restructure players to separate policies from
+#     agent class and potentially have two policies.
+# - Add a role attribute to game.available_moves
+# - Merge terminal_update() with update()
+# - Add timestep index to TDLearner's saved states and do checks
+# - Replace use of 'position' with 'action'
+# - game.next_state is basically the environment dynamics. Should
+#     re-design so you can use it independent of self.
 # - Add other methods - n-step TD, monte-carlo, DP
 # - Add other methods - Sarsa
 # - create a game.make_moves method
@@ -231,6 +234,8 @@ class Environment(ABC):
             state (...): Environment state.  If not provided,
                 the current environment state will be used.
         """
+
+        # TODO: In general, this should have a role attribute
 
         pass
 
@@ -457,7 +462,8 @@ class HumanPlayer(Player):
 class TDLearner(Player):
     def __init__(self, name="TD", learning_rate=0.1, gamma=1.0,
                  off_policy_rate=0.1, initial_value=0.5,
-                 value_function=None, use_afterstates=True):
+                 value_function=None, use_afterstates=True,
+                 seed=None):
         """Tic-Tac-Toe game player that uses temporal difference (TD)
         learning algorithm.
 
@@ -485,6 +491,9 @@ class TDLearner(Player):
         self.saved_game_states = {}  # TODO: Should game save these?
         self.on_policy = None
 
+        # Independent random number generator for sole use
+        self.rng = random.Random(seed)
+
     def get_value(self, state_key):
         """Returns a value from TDLearner's value_function for the
         game state represented by state_key. If there is no item for
@@ -507,10 +516,10 @@ class TDLearner(Player):
         if len(available_positions) == 0:
             raise ValueError("There are no possible moves.")
 
-        elif random.random() < self.off_policy_rate:
+        elif self.rng.random() < self.off_policy_rate:
             # Random off-policy move
             self.on_policy = False
-            position = random.choice(available_positions)
+            position = self.rng.choice(available_positions)
             next_state = game.next_state(game.state, (role, position))
             next_state_key = game.generate_state_key(next_state, role)
 
@@ -528,7 +537,7 @@ class TDLearner(Player):
 
             max_value = max(options)[0]
             best_options = [m for m in options if m[0] == max_value]
-            _, position, next_state_key = random.choice(best_options)
+            _, position, next_state_key = self.rng.choice(best_options)
 
         # Save chosen state for learning updates later
         self.save_state(game, next_state_key)
@@ -553,8 +562,10 @@ class TDLearner(Player):
         return states
 
     def update(self, game, reward, show=False):
-        """Update TDLearner's value function based on reward from
-        game.
+        """Update TDLearner's value function based on current reward
+        from game.  This gets called by GameController during a game
+        whenever rewards are distributed and the player has received
+        one.
 
         Args:
             game (Game): Game that player is playing.
@@ -590,6 +601,9 @@ class TDLearner(Player):
             reward (float): Reward value.
             show (bool): Print a message if True.
         """
+
+        # TODO: Can this be merged with update() and just use
+        # game.gameover to determine if this is the terminal state, reward?
 
         if self.updates_on and self.on_policy is True:
 
@@ -637,6 +651,7 @@ class RandomPlayer(Player):
             seed (int): Random number generator seed.
         """
 
+        # TODO: Need to restructure players to separate policy from agent
         super().__init__(name)
 
         # Independent random number generator for sole use

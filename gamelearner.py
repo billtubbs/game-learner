@@ -488,10 +488,10 @@ class TDLearner(Player):
         if value_function is None:
             value_function = {}
         self.value_function = value_function
-        self.saved_game_states = {}  # TODO: Should game save these?
+        self.saved_game_states = {}
         self.on_policy = None
 
-        # Independent random number generator for sole use
+        # Dedicated random number generator for sole use
         self.rng = random.Random(seed)
 
     def get_value(self, state_key):
@@ -654,8 +654,7 @@ class RandomPlayer(Player):
         # TODO: Need to restructure players to separate policy from agent
         super().__init__(name)
 
-        # Independent random number generator for sole use
-        # by this instance
+        # Dedicated random number generator
         self.rng = random.Random(seed)
 
     def decide_next_move(self, game, role, show=False):
@@ -819,7 +818,8 @@ class GameController:
         return f"{self.__class__.__name__}({', '.join(params)})"
 
 
-def train_computer_players(game, players, iterations=1000, show=True):
+def train_computer_players(game, players, iterations=1000, seed=None,
+                           show=True):
     """Play repeated games with n computer players then play
     against one of them.
 
@@ -828,6 +828,10 @@ def train_computer_players(game, players, iterations=1000, show=True):
         players (list): List of at least 2 Player instances.
         iterations (int): Number of iterations of training.
         show (bool): Print progress messages and results if True.
+
+    returns:
+        stats (dict): Dictionary containing the game results for
+            each player.
     """
 
     n_players = game.possible_n_players[0]
@@ -835,11 +839,14 @@ def train_computer_players(game, players, iterations=1000, show=True):
 
     stats = {p: {'won': 0, 'lost': 0, 'played': 0} for p in players}
 
+    # Dedicated random-number generator
+    rng = random.Random(seed)
+
     if show:
         print("\nTraining %d computer players..." % len(players))
     for i in range(iterations):
         game.reset()
-        selected_players = random.sample(players, n_players)
+        selected_players = rng.sample(players, n_players)
         ctrl = GameController(game, selected_players)
         ctrl.play(show=False)
         for player in selected_players:
@@ -852,6 +859,8 @@ def train_computer_players(game, players, iterations=1000, show=True):
         if show:
             if i % 100 == 0:
                 print(i, "games completed")
+
+    return stats
 
     if show:
         print("\nResults:")

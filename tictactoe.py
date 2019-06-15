@@ -512,9 +512,10 @@ def test_player(player, game=TicTacToeGame, seed=1):
     random_player = RandomPlayer(seed=seed)
     expert_player = TicTacToeExpert(seed=seed)
 
-    # Make a shuffled list of the opponents
+    # Make a shuffled list of the order of play
     opponents = [random_player]*50 + [expert_player]*50
-    random.Random(seed).shuffle(opponents)
+    rng = random.Random(seed)
+    rng.shuffle(opponents)
 
     game = game()
     player.updates_on, saved_mode = False, player.updates_on

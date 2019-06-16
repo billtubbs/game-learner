@@ -2,10 +2,10 @@
 
 *Game-learner* is a Python module to simulate simple games or puzzles such as [Tic Tac Toe](https://en.wikipedia.org/wiki/Tic-tac-toe) 
 (Noughts and Crosses) in order to test different computer-algorithms and methods such as 
-reinforcement learning and dynamic programming.
+*reinforcement learning* and *dynamic programming*.
 
 It includes a temporal-difference (TD) learning algorithm that learns to play Tic-tac-toe
-as described in Chapter 1 of the [draft 2nd edition](www.incompleteideas.net/book/bookdraft2017nov5.pdf) of Sutton 
+as described in Chapter 1 of the [2nd edition](http://www.incompleteideas.net/book/the-book-2nd.html) of Sutton 
 and Barto's book *Reinforcement Learning: An Introduction*.
 
 The TD learning algorithm uses a state value function which is updated each time-step as follows:
@@ -18,10 +18,7 @@ The file [`gamelearner.py`](gamelearner.py) contains three main classes:
 - `Environment` - abstract environment class for constructing specific environments (or 'games')
 - `GameController` - controls a game with any number of players
 
-This diagram is a little complicated but shows the main methods and objects that are passed
-between the instances of the three classes:
-
-<img src='images/class_diagram.png'>
+For details on how instances of these three classes interact, see [this diagram](images/class_diagram.png).
 
 The file also contains three common player-types:
 

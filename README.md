@@ -1,23 +1,43 @@
 # game-learner
 
-Demonstration of a TD Learning algorithm learning to play the game [Tic Tac Toe (Noughts and Crosses)](https://en.wikipedia.org/wiki/Tic-tac-toe) based 
-on the simple one-step TD (temporal difference) algorithm described in Chapter 1 of the
-[draft 2nd edition](www.incompleteideas.net/book/bookdraft2017nov5.pdf) of Sutton 
-and Barto's book Reinforcement Learning: An Introduction.
+*Game-learner* is a Python module to simulate simple games or puzzles such as [Tic Tac Toe](https://en.wikipedia.org/wiki/Tic-tac-toe) 
+(Noughts and Crosses) in order to test different computer-algorithms and methods such as 
+reinforcement learning and dynamic programming.
 
-Value function update method:
+It includes a temporal-difference (TD) learning algorithm that learns to play Tic-tac-toe
+as described in Chapter 1 of the [draft 2nd edition](www.incompleteideas.net/book/bookdraft2017nov5.pdf) of Sutton 
+and Barto's book *Reinforcement Learning: An Introduction*.
+
+The TD learning algorithm uses a state value function which is updated each time-step as follows:
 
 V(s) ← V(s) + α[reward + γV(s′) − V(s)]
 
-Classes defined in `gamelearner.py`:
+The file [`gamelearner.py`](gamelearner.py) contains three main classes:
 
-- `Player` - parent class for all players
-- `TicTacToeGame` - the game dynamics
+- `Player` - abstract parent class for all types of players (or 'agents')
+- `Environment` - abstract environment class for constructing specific environments (or 'games')
+- `GameController` - controls a game with any number of players
+
+This diagram is a little complicated but shows the main methods and objects that are passed
+between the instances of the three classes:
+
+<img src='images/class_diagram.png'>
+
+The file also contains three common player-types:
+
+- `RandomPlayer` - a computer player that makes random moves
 - `HumanPlayer` - an interface to allow humans to play a game
 - `TDLearner` - a simple TD learning algorithm that learns to play from experience
-- `TicTacToeExpert` - computer algorithm to play optimally - should be unbeatable [according to wikipedia](https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy)
-- `RandomPlayer` - computer player that makes random moves
-- `GameController` - controls a game between two players
+
+
+
+## Tic-Tac-Toe Example
+
+The file [`tictactoe.py`](tictactoe.py) contains classes which inherit from the above:
+
+- `TicTacToeGame` - the game environment (dynamics)
+- `TicTacToeExpert` - computer algorithm which plays optimally - should be unbeatable [according to wikipedia](https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy)
+
 
 ### Example usage
 

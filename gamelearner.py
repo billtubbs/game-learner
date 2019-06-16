@@ -14,6 +14,8 @@ Barto's book Reinforcement Learning: An Introduction.
 # - Replace use of 'position' with 'action'
 # - game.next_state is basically the environment dynamics. Should
 #     re-design so you can use it independent of self.
+# - TDLearner uses after-states but should be able to use state-action
+#     pairs as well.
 # - Add other methods - n-step TD, monte-carlo, DP
 # - Add other methods - Sarsa
 # - create a game.make_moves method
@@ -102,6 +104,7 @@ class Player(ABC):
             game (Game): Game that player is playing.
             reward (float): Reward value based on the last move
                 made by player.
+            show (bool): Print a message (optional).
         """
 
         pass
@@ -165,11 +168,15 @@ class Environment(ABC):
     Class attributes:
         Environment.name (str): The environment's name (e.g. 'Tic Tac Toe').
         Environment.roles (list): Possible player roles (e.g. [1, 2]).
+        Environment.possible_n_players (list) : List of integers specifying
+            possible number of players.  E.g. for Tic-Tac-Toe,
+            possible_n_players = [2].
         Environment.help_text (dict): Help messages for human players.
     """
 
     name = 'Abstract environment'
     roles = None
+    possible_n_players = None
     help_text = None
 
     def __init__(self, moves=None):
@@ -184,7 +191,10 @@ class Environment(ABC):
 
         self.start_time = None
         self.end_time = None
+        self.start_state = None
+        self.state = None
         self.game_over = False
+        self.winner = None  # TODO: Decide if this needs to be in abstract class
         self.moves = []
         if moves is not None:
             for move in moves:
@@ -356,7 +366,6 @@ class Environment(ABC):
 
         self.game_over, self.winner = self.check_game_state(role=role)
 
-
     @abstractmethod
     def generate_state_key(self, state, role):
         """Converts a game state (or afterstate) into a string of
@@ -468,6 +477,7 @@ class TDLearner(Player):
                 (unvisited) state.
             value_function (dict): Optionally provide a pre-trained
                 value function.
+            seed (int): Random number generator seed value.
         """
 
         super().__init__(name)
@@ -613,7 +623,7 @@ class TDLearner(Player):
     def copy(self, name=None):
 
         if name is None:
-            name=self.name
+            name = self.name
 
         return TDLearner(name=name,
                          learning_rate=self.learning_rate,
@@ -631,13 +641,14 @@ class RandomPlayer(Player):
 
         Args:
             name (str): Arbitrary name to identify the player
-            seed (int): Random number generator seed.
+            seed (int): Random number generator seed value.
         """
 
         # TODO: Need to restructure players to separate policy from agent
         super().__init__(name)
 
         # Dedicated random number generator
+        self.seed = seed
         self.rng = random.Random(seed)
 
     def decide_next_move(self, game, role, show=False):
@@ -789,13 +800,6 @@ class GameController:
 
     def __repr__(self):
 
-        return "GameController(%s, %s)" % (
-            self.game.__repr__(),
-            self.players.__repr__()
-        )
-
-    def __repr__(self):
-
         params = [self.game.__repr__(), self.players.__repr__()]
 
         return f"{self.__class__.__name__}({', '.join(params)})"
@@ -810,6 +814,7 @@ def train_computer_players(game, players, iterations=1000, seed=None,
         game (Environment): Game environment to play.
         players (list): List of at least 2 Player instances.
         iterations (int): Number of iterations of training.
+        seed (int): Random number generator seed value.
         show (bool): Print progress messages and results if True.
 
     returns:
@@ -843,8 +848,6 @@ def train_computer_players(game, players, iterations=1000, seed=None,
             if i % 100 == 0:
                 print(i, "games completed")
 
-    return stats
-
     if show:
         print("\nResults:")
         for player in players:
@@ -852,6 +855,8 @@ def train_computer_players(game, players, iterations=1000, seed=None,
                                  stats[player]['played'])
             print("%s: won %d, lost %d, drew %d" % (player.name, won, lost,
                                                     played - won - lost))
+
+    return stats
 
 
 def play_looped_games(game, players, move_first=0, n=None,

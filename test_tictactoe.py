@@ -10,6 +10,7 @@ from tictactoe import TicTacToeGame, GameController, RandomPlayer, \
                       TicTacToeExpert
 from gamelearner import train_computer_players
 
+
 class TestTicTacToe(unittest.TestCase):
 
     def test_check_game_state(self):

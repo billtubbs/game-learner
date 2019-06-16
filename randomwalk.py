@@ -9,8 +9,10 @@ learning rates and n for n-step TD learning.
 
 import string
 
-from gamelearner import Environment, GameController, Player, HumanPlayer, \
-                        RandomPlayer, TDLearner
+from gamelearner import Environment
+
+# Other possible imports:
+# GameController, Player, HumanPlayer, RandomPlayer, TDLearner
 
 
 class RandomWalkGame(Environment):
@@ -35,9 +37,9 @@ class RandomWalkGame(Environment):
         assert 1 < size <= 26  # States are labelled A-Z
 
         # Create states
-        self.states = [self.terminal_states[0]] + \
-                      list(string.ascii_uppercase[:size]) + \
-                      [self.terminal_states[1]]
+        self.states = [self.terminal_states[0]] \
+            + list(string.ascii_uppercase[:size]) \
+            + [self.terminal_states[1]]
 
         assert all([s in self.states for s in self.terminal_states])
         assert all([s in self.terminal_rewards for s in self.terminal_states])
@@ -71,7 +73,7 @@ class RandomWalkGame(Environment):
             # Displays the full random walk
             states_to_show = [self.state] + self.terminal_states
             print(' '.join((s if s in states_to_show else '_')
-                            for s in self.states))
+                           for s in self.states))
 
     def available_moves(self, state=None):
 

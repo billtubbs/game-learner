@@ -10,7 +10,6 @@ algorithm.
 
 import numpy as np
 import itertools
-import random
 from gamelearner import *
 
 
@@ -128,6 +127,8 @@ class TicTacToeGame(Environment):
             move (tuple): Tuple of length 2 containing the player role
                 and the move (role, position). Position is also a tuple
                 (row, col).
+            role_check (bool): If True, checks to make sure it is role's
+                turn.
 
         Returns:
             next_state (np.ndarray): copy of state after move made.
@@ -600,8 +601,8 @@ def tictactoe_game(players, move_first=0, show=True):
     ctrl.play(show=show)
 
 
-def tictactoe_with_2_humans(game, names=("Player 1", "Player 2"), move_first=0,
-                       n=1):
+def tictactoe_with_2_humans(names=("Player 1", "Player 2"), move_first=0,
+                            n=1):
     """Demo of TicTacToeGame with two new human players.
 
     Args:

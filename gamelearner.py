@@ -179,7 +179,7 @@ class Environment(ABC):
     possible_n_players = None
     help_text = None
 
-    def __init__(self, moves=None):
+    def __init__(self, start_state, moves=None):
         """Initialize the environment.
 
         Args:
@@ -189,10 +189,10 @@ class Environment(ABC):
                 the action taken.
         """
 
+        self.start_state = start_state
+        self.state = start_state
         self.start_time = None
         self.end_time = None
-        self.start_state = None
-        self.state = None
         self.game_over = False
         self.winner = None  # TODO: Decide if this needs to be in abstract class
         self.moves = []

@@ -596,35 +596,6 @@ class TDLearner(Player):
         if show:
             print("%s got %s reward." % (self.name, reward))
 
-    def update_terminal(self, game, reward, show=False):
-        """Update TDLearner's value function based on reward from
-        game after terminal state reached.
-
-        Args:
-            game (Game): Game that player is playing.
-            reward (float): Reward value.
-            show (bool): Print a message if True.
-        """
-
-        # TODO: Can this be merged with update() and just use
-        # game.gameover to determine if this is the terminal state, reward?
-
-        if self.updates_on and self.on_policy is True:
-
-            # Retrieve previous actions in the game if
-            # there were any
-            last_state = self.get_saved_game_states(game)[-1]
-
-            # If game terminated then update last state value
-            # as there are no future state-values
-            self.value_function[last_state] = \
-                self.get_value(last_state) + self.learning_rate*(
-                    reward - self.get_value(last_state)
-                )
-
-        if show:
-            print("%s got %s reward." % (self.name, reward))
-
     def game_reset(self, game):
         """Tells TD Learner that game has been reset.
         """
@@ -637,13 +608,22 @@ class TDLearner(Player):
         super().gameover(game, role)
 
         # Delete list of previous game states
+        # TODO: Why do we need this?
         del self.saved_game_states[game]
 
-    def copy(self, name):
+    def copy(self, name=None):
 
-        return TDLearner(name=name, learning_rate=self.learning_rate,
+        if name is None:
+            name=self.name
+
+        return TDLearner(name=name,
+                         learning_rate=self.learning_rate,
+                         gamma=self.gamma,
                          off_policy_rate=self.off_policy_rate,
-                         value_function=self.value_function)
+                         initial_value=self.initial_value,
+                         value_function=self.value_function.copy(),
+                         use_afterstates=self.use_afterstates,
+                         seed=self.seed)
 
 
 class RandomPlayer(Player):

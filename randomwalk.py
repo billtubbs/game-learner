@@ -143,4 +143,4 @@ class RandomWalkGame(Environment):
 
     def generate_state_key(self, state, role):
 
-        return self.state
+        return state

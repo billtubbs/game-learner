@@ -488,18 +488,17 @@ class TDLearner(Player):
     def get_value(self, state_key):
         """Returns a value from TDLearner's value_function for the
         game state represented by state_key. If there is no item for
-        that move, returns the initial_value instead.
+        that state, returns the initial_value instead.
         """
 
         return self.value_function.get(state_key, self.initial_value)
 
     def save_state(self, game, state_key):
-        """Adds action_key to a list of keys stored in dictionary
+        """Adds state_key to a list of keys stored in dictionary
         self.saved_game_states for each game being played.
         """
 
-        self.saved_game_states[game] = \
-            self.saved_game_states.get(game, []) + [state_key]
+        self.saved_game_states.get(game, []).append(state_key)
 
     def decide_next_move(self, game, role, show=False):
 

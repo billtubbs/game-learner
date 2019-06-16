@@ -2,7 +2,7 @@
 
 Demonstration of a TD Learning algorithm learning to play the game [Tic Tac Toe (Noughts and Crosses)](https://en.wikipedia.org/wiki/Tic-tac-toe) based 
 on the simple one-step TD (temporal difference) algorithm described in Chapter 1 of the
-[draft 2nd edition](www.incompleteideas.net/book/bookdraft2017nov5.pdf) of Sutton 
+[2nd edition](http://www.incompleteideas.net/book/the-book-2nd.html) of Sutton 
 and Barto's book Reinforcement Learning: An Introduction.
 
 Value function update method:

@@ -92,25 +92,16 @@ class Player(ABC):
         game.make_move(move)
 
     def update(self, game, reward, show=False):
-        """Override this method if player needs rewards to learn
-        how to play.
+        """Override this method if player uses rewards to learn
+        how to play.  Note, if the game has ended (game.gameover
+        == True) then reward must be a terminal reward which may
+        come in addition to a regular reward for the previous
+        move made.
 
         Args:
             game (Game): Game that player is playing.
             reward (float): Reward value based on the last move
                 made by player.
-        """
-
-        pass
-
-    def update_terminal(self, game, reward, show=False):
-        """Override this method if player needs rewards to learn
-        how to play.
-
-        Args:
-            game (Game): Game that player is playing.
-            reward (float): Terminal reward value based on the
-                last move made by the winner.
         """
 
         pass
@@ -575,19 +566,32 @@ class TDLearner(Player):
 
         if self.updates_on and self.on_policy is True:
 
-            # Retrieve previous actions in the game if
-            # there were any
+            # Retrieve previous game-states if there were any
             states = self.get_saved_game_states(game)
 
-            # Need at least 2 previous actions for a value update
-            if len(states) > 1:
+            if not game.game_over:
 
-                # TD value function update
-                self.value_function[states[-2]] = \
-                    self.get_value(states[-2]) + self.learning_rate*(
-                        reward + self.gamma*self.get_value(states[-1]) -
-                        self.get_value(states[-2])
-                    )
+                # Need at least 2 previous actions for a value update
+                if len(states) > 1:
+
+                    # TD value function update
+                    self.value_function[states[-2]] = \
+                        self.get_value(states[-2]) + self.learning_rate*(
+                            reward + self.gamma*self.get_value(states[-1]) -
+                            self.get_value(states[-2])
+                        )
+            else:
+                # Reward must be a terminal state reward
+                # Update previous state-value if there was one
+                if states:
+                    last_state = states[-1]
+
+                    # If game terminated then update last state value
+                    # as there are no future state-values
+                    self.value_function[last_state] = \
+                        self.get_value(last_state) + self.learning_rate*(
+                            reward - self.get_value(last_state)
+                        )
 
         if show:
             print("%s got %s reward." % (self.name, reward))
@@ -772,8 +776,8 @@ class GameController:
             # Get and send terminal rewards to players
             terminal_rewards = self.game.get_terminal_rewards()
             for role, reward in terminal_rewards.items():
-                self.players_by_role[role].update_terminal(
-                    self.game, reward, show=show)
+                self.players_by_role[role].update(self.game, reward,
+                                                  show=show)
 
             # Call gameover method of each player
             for player in self.players:

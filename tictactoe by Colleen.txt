@@ -1,0 +1,271 @@
+>>> from gamelearner import *
+>>> game = TicTacToeGame()
+>>> players = [HumanPlayer("Colleen"), TDLearner("TD")]
+>>> ctrl = GameController(game, players)
+>>> ctrl.play()
+Game of Tic Tac Toe with 2 players ['Colleen', 'TD']
+_ _ _
+_ _ _
+_ _ _
+TD's turn (row, col): (2, 2)
+_ _ _
+_ _ _
+_ _ X
+Colleen's turn (row, col): 1,1
+_ _ _
+_ O _
+_ _ X
+TD's turn (row, col): (2, 0)
+_ _ _
+_ O _
+X _ X
+Colleen's turn (row, col): 2,1
+_ _ _
+_ O _
+X O X
+TD's turn (row, col): (0, 0)
+X _ _
+_ O _
+X O X
+Colleen's turn (row, col): 0,1
+Colleen you won!
+X O _
+_ O _
+X O X
+Game over!
+Colleen won
+>>> game.reset()
+>>> ctrl.play()
+Game of Tic Tac Toe with 2 players ['Colleen', 'TD']
+_ _ _
+_ _ _
+_ _ _
+TD's turn (row, col): (2, 2)
+_ _ _
+_ _ _
+_ _ X
+Colleen's turn (row, col): 1,1
+_ _ _
+_ O _
+_ _ X
+TD's turn (row, col): (2, 1)
+_ _ _
+_ O _
+_ X X
+Colleen's turn (row, col): 2,2
+That position is not available.
+Try again.
+Colleen's turn (row, col): 2,0
+_ _ _
+_ O _
+O X X
+TD's turn (row, col): (0, 0)
+X _ _
+_ O _
+O X X
+Colleen's turn (row, col): 0,2
+Colleen you won!
+X _ O
+_ O _
+O X X
+Game over!
+Colleen won
+>>> td = players[1]
+>>> td
+TDLearner('TD')
+>>> train_computer_players([td, ExpertPlayer()], 1000)
+
+Training 2 computer players...
+0 games completed
+100 games completed
+200 games completed
+300 games completed
+400 games completed
+500 games completed
+600 games completed
+700 games completed
+800 games completed
+900 games completed
+
+Results:
+TD: won 0, lost 578
+EXPERT: won 578, lost 0
+Draws: 422
+>>> game.reset()
+>>> ctrl.play()
+Game of Tic Tac Toe with 2 players ['Colleen', 'TD']
+_ _ _
+_ _ _
+_ _ _
+TD's turn (row, col): (1, 0)
+_ _ _
+X _ _
+_ _ _
+Colleen's turn (row, col): 1,1
+_ _ _
+X O _
+_ _ _
+TD's turn (row, col): (0, 2)
+_ _ X
+X O _
+_ _ _
+Colleen's turn (row, col): 0,1
+_ O X
+X O _
+_ _ _
+TD's turn (row, col): (2, 1)
+_ O X
+X O _
+_ X _
+Colleen's turn (row, col): 2,2
+_ O X
+X O _
+_ X O
+TD's turn (row, col): (0, 0)
+X O X
+X O _
+_ X O
+Colleen's turn (row, col): 2,0
+X O X
+X O _
+O X O
+TD's turn (row, col): (1, 2)
+X O X
+X O X
+O X O
+Game over!
+Draw
+>>> game.reset()
+>>> ctrl.play()
+Game of Tic Tac Toe with 2 players ['Colleen', 'TD']
+_ _ _
+_ _ _
+_ _ _
+TD's turn (row, col): (2, 1)
+_ _ _
+_ _ _
+_ X _
+Colleen's turn (row, col): 1,1
+_ _ _
+_ O _
+_ X _
+TD's turn (row, col): (1, 2)
+_ _ _
+_ O X
+_ X _
+Colleen's turn (row, col): 0,0
+O _ _
+_ O X
+_ X _
+TD's turn (row, col): (2, 2)
+O _ _
+_ O X
+_ X X
+Colleen's turn (row, col): 0,2
+O _ O
+_ O X
+_ X X
+TD's turn (row, col): (2, 0)
+Colleen you lost!
+O _ O
+_ O X
+X X X
+Game over!
+TD won
+>>> game.reset()
+>>> ctrl.play()
+Game of Tic Tac Toe with 2 players ['Colleen', 'TD']
+_ _ _
+_ _ _
+_ _ _
+TD's turn (row, col): (2, 2)
+_ _ _
+_ _ _
+_ _ X
+Colleen's turn (row, col): 1,1
+_ _ _
+_ O _
+_ _ X
+TD's turn (row, col): (0, 0)
+X _ _
+_ O _
+_ _ X
+Colleen's turn (row, col): 2,0
+X _ _
+_ O _
+O _ X
+TD's turn (row, col): (1, 2)
+X _ _
+_ O X
+O _ X
+Colleen's turn (row, col): 0,2
+Colleen you won!
+X _ O
+_ O X
+O _ X
+Game over!
+Colleen won
+>>> train_computer_players([td, ExpertPlayer()], 1000)
+
+Training 2 computer players...
+0 games completed
+100 games completed
+200 games completed
+300 games completed
+400 games completed
+500 games completed
+600 games completed
+700 games completed
+800 games completed
+900 games completed
+
+Results:
+TD: won 0, lost 230
+EXPERT: won 230, lost 0
+Draws: 770
+>>> ctrl = GameController(game,players,move_first=0)
+>>> game.reset()
+>>> ctrl.play()
+Game of Tic Tac Toe with 2 players ['Colleen', 'TD']
+_ _ _
+_ _ _
+_ _ _
+Colleen's turn (row, col): 1,1
+_ _ _
+_ X _
+_ _ _
+TD's turn (row, col): (2, 0)
+_ _ _
+_ X _
+O _ _
+Colleen's turn (row, col): 0,0
+X _ _
+_ X _
+O _ _
+TD's turn (row, col): (2, 2)
+X _ _
+_ X _
+O _ O
+Colleen's turn (row, col): 2,1
+X _ _
+_ X _
+O X O
+TD's turn (row, col): (0, 1)
+X O _
+_ X _
+O X O
+Colleen's turn (row, col): 1,2
+X O _
+_ X X
+O X O
+TD's turn (row, col): (1, 0)
+X O _
+O X X
+O X O
+Colleen's turn (row, col): 0,2
+X O X
+O X X
+O X O
+Game over!
+Draw
+>>>

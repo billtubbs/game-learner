@@ -493,6 +493,7 @@ class TDLearner(Player):
         self.on_policy = None
 
         # Dedicated random number generator for sole use
+        self.seed = seed
         self.rng = random.Random(seed)
 
     def get_value(self, state_key):
@@ -617,7 +618,6 @@ class TDLearner(Player):
         super().gameover(game, role)
 
         # Delete list of previous game states
-        # TODO: Why do we need this?
         del self.saved_game_states[game]
 
     def copy(self, name=None):

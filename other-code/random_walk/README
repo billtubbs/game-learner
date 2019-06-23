@@ -1,0 +1,45 @@
+This is code written for the random walk problem in the book, for
+CS-791O Fall '97.  
+
+To compile you must have GNU make type 
+
+make
+
+(sometime gmake) on UMASS-CS machines.
+
+To use this program for a 19-state 15-step random walk task with
+on-line updating and alphas 0,0.01,0.02,....1.0 type
+
+walk on 0 1.0 0.01 15
+
+Or just type 
+
+walk
+
+to get command line requirements.
+
+The Makefile contains a rule which will generate the graphs seen in
+the book.  Type 
+
+make test
+
+for both on-line and off-line postscript plots
+
+Note: This was written as a HW assignment and the code was not
+intended for eyes other than mine, but it's pretty straightforward and
+sparsley commented.  I hope it helps, if you need help getting this
+running contact me and I'll see what I can do.
+
+Please direct questions to:
+
+David Hirvonen
+dhirvonen@sarnoff.com
+
+contents:
+---------
+
+Walk.h		Definition of Array and (Random) Walk classes
+Walk.cc		Implementation of "
+main_walk.cc	Main program
+Makefile	Contains example programs
+walk.gnu	A gnuplot script for printing a pretty graph of output

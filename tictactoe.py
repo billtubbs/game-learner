@@ -79,7 +79,7 @@ class TicTacToeGame(Environment):
         start_state = np.zeros(self.shape, dtype='b')
         super().__init__(start_state, moves=moves)
         self.n_players = 2
-        # self.winner = None  TODO: Currently this is in parent class
+        # self.winner = None  TODO: Currently this is done in parent class
         self.player_iterator = itertools.cycle(self.roles)
         self.turn = next(self.player_iterator)
         self.start_state = start_state

@@ -2,11 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="e5349bd2-ac9d-49f3-8923-9fb8bc431cd6" name="Default" comment="Added tests of rewards">
-      <change afterPath="$PROJECT_DIR$/test_randomwalk.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Sutton-Barto-book-exercise-answers.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Sutton-Barto-book-exercise-answers.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gamelearner.py" beforeDir="false" afterPath="$PROJECT_DIR$/gamelearner.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/randomwalk.py" beforeDir="false" afterPath="$PROJECT_DIR$/randomwalk.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tictactoe.py" beforeDir="false" afterPath="$PROJECT_DIR$/tictactoe.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.ipynb_checkpoints/Development-of-N-step-TDLearner-algorithm-checkpoint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/.ipynb_checkpoints/Development-of-N-step-TDLearner-algorithm-checkpoint.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.ipynb_checkpoints/Sutton-Barto-book-exercise-answers-checkpoint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/.ipynb_checkpoints/Sutton-Barto-book-exercise-answers-checkpoint.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Development-of-N-step-TDLearner-algorithm.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Development-of-N-step-TDLearner-algorithm.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/random_walk_td0.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/random_walk_td0.pdf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/random_walk_td5_19.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/random_walk_td5_19.pdf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/random_walk_tdl_19.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/random_walk_tdl_19.pdf" afterDir="false" />
     </list>
     <ignored path="tic-tac-toe.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -27,7 +28,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/gamelearner.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="267">
+            <state relative-caret-position="12672">
               <caret line="582" selection-start-line="582" selection-end-line="582" />
               <folding>
                 <element signature="e#1059#1094#0" expanded="true" />
@@ -39,8 +40,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/tictactoe.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="342">
-              <caret line="85" selection-start-line="85" selection-end-line="85" />
+            <state relative-caret-position="320">
+              <caret line="84" column="50" selection-start-line="84" selection-start-column="50" selection-end-line="84" selection-end-column="50" />
               <folding>
                 <element signature="e#336#354#0" expanded="true" />
               </folding>
@@ -121,6 +122,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -132,10 +134,10 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
@@ -371,7 +373,8 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="1440" height="800" extended-state="6" />
+    <frame x="0" y="23" width="1440" height="828" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.23819591" />
       <window_info id="Structure" order="1" weight="0.25" />
@@ -434,16 +437,6 @@
     <entry file="file://$PROJECT_DIR$/tictactoe by Colleen.txt">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/gamelearner.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="267">
-          <caret line="582" selection-start-line="582" selection-end-line="582" />
-          <folding>
-            <element signature="e#1059#1094#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/test_tictactoe.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1540">
@@ -474,10 +467,20 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/gamelearner.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="12672">
+          <caret line="582" selection-start-line="582" selection-end-line="582" />
+          <folding>
+            <element signature="e#1059#1094#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/tictactoe.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="342">
-          <caret line="85" selection-start-line="85" selection-end-line="85" />
+        <state relative-caret-position="320">
+          <caret line="84" column="50" selection-start-line="84" selection-start-column="50" selection-end-line="84" selection-end-column="50" />
           <folding>
             <element signature="e#336#354#0" expanded="true" />
           </folding>

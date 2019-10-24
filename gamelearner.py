@@ -368,29 +368,17 @@ class Environment(ABC):
 
     @abstractmethod
     def generate_state_key(self, state, role):
-        """Converts a game state (or afterstate) into a string of
-        bytes containing characters that represent the following:
-         '-': Empty board position
-         'S': Position occupied by self
-         'O': Position occupied by opponent
-
-        This is used by TDLearner to create unique hashable keys
-        for storing action-values in a dictionary.
-
-        Example:
-        > game.state
-        array([[1, 0, 0],
-               [2, 0, 0],
-               [0, 0, 1]], dtype=int8)
-        > game.generate_state_key(game.state, 1)
-        b'S--O----S'
-
-        Args:
-            state (np.ndarray): Game state array.
-            role (int): Player role.
+        """Converts a game state (or afterstate) into a hashable key
+        that can be used by tabular value functions for storing and
+        retrieving state values.
+        
+        Implement this method for each environment.
+        
+        Could be a string of bytes or an integer for example (as long
+        as there is a unique correspondence between states and keys).
 
         Returns:
-            key (string): string of bytes representing game state.
+            key (string or int): Unique key representing a game state.
         """
 
         pass

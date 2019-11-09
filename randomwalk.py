@@ -3,13 +3,12 @@
 described in Chapters 6 and 7 of the 2nd edition of Sutton
 and Barto's book Reinforcement Learning: An Introduction.
 
-Random Walk environment is used to test the impact of
-learning rates and n for n-step TD learning.
+Random Walk environment is used to test n-step TD and
+TD-Lambda algorithms.
 """
 
 import string
 import numpy as np
-
 from gamelearner import Environment
 
 

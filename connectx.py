@@ -64,6 +64,7 @@ class Connect4(Environment):
         """
         self.n_players = 2
         self._board_full, self._state = self._empty_board_state()
+        self._fill_levels = np.zeros(self.shape[1], dtype='int8')
         self.winner = None
         self.player_iterator = itertools.cycle(self.roles)
         self.turn = next(self.player_iterator)
@@ -104,7 +105,7 @@ class Connect4(Environment):
             print(" ".join(list(chars[i] for i in row)))
 
     @staticmethod
-    def _fill_levels(state):
+    def _get_fill_levels(state):
         # Note: This assumes proper filling!
         return (state > 0).sum(axis=0)
 
@@ -118,8 +119,9 @@ class Connect4(Environment):
 
         if state is None:
             state = self.state
-
-        spaces_left = self._fill_levels(state) < self.shape[0]
+            spaces_left = self._fill_levels < self.shape[0]
+        else:
+            spaces_left = self._get_fill_levels(state) < self.shape[0]
         
         return np.nonzero(spaces_left)[0]
 
@@ -132,8 +134,8 @@ class Connect4(Environment):
     @staticmethod
     def _chain_in_direction(board_full, pos, direction, role):
         """Finds number of matching discs in one direction."""
-        step = steps[direction]
-        for i in range(connect):
+        step = self._steps[direction]
+        for i in range(self.connect):
             pos = (step[0]+pos[0], step[1]+pos[1])
             x = board_full[pos]
             if x != role:
@@ -146,7 +148,7 @@ class Connect4(Environment):
         #TODO: Need to implement fill_levels with state
         assert board_full[pos] == 0
         results = {}
-        for direction, step in steps.items():
+        for direction, step in self._steps.items():
             n = self._chain_in_direction(board_full, pos, direction, role)
             if n == self.connect - 1:
                 return True
@@ -201,18 +203,6 @@ class Connect4(Environment):
 
         return game_over, winner
 
-    def generate_state_key(self):
-        raise NotImplementedError()
-
-    def get_rewards(self):
-        raise NotImplementedError()
-
-    def get_terminal_rewards(self):
-        raise NotImplementedError()
-
-    def next_state(self):
-        raise NotImplementedError()
-
     def next_state(self, state, move, role_check=True):
         """Returns the next state of the game when move is
         taken from current game state or from state if 
@@ -239,7 +229,7 @@ class Connect4(Environment):
                 raise ValueError(f"It is not player {role}'s turn.")
 
         assert 0 <= position < self.shape[1], self.help_text['Out of range']
-        fill_level = self._fill_levels(state)[position]
+        fill_level = self._fill_levels[position]
         assert fill_level < self.shape[0], self.help_text['Move not available']
 
         next_state = state.copy()
@@ -255,13 +245,23 @@ class Connect4(Environment):
             show (bool): Print a message if True.
         """
         position = move[1]
-        fill_level = self._fill_levels(self.state)[position]
-        self._pos_last = (position, fill_level)
+        fill_level = self._fill_levels[position]
+        self._pos_last = (fill_level, position)
         super().make_move(move, show)
+        self._fill_levels[position] = self._fill_levels[position] + 1
         self.turn = next(self.player_iterator)
 
-    def reverse_move(self):
-        raise NotImplementedError()
+    def reverse_move(self, show=False):
+        """Reverse the last move made.
+
+        Args:
+            show (bool): Print a message if True.
+        """
+
+        self.moves.pop()
+        self.state[self._pos_last] = 0  # Removes last disc from board
+        self.turn = next(self.player_iterator)  # TODO: Only works for 2 player games!
+        self.check_if_game_over()
 
     def get_rewards(self):
         """Returns any rewards at the current time step for
@@ -300,6 +300,9 @@ class Connect4(Environment):
             rewards = {role: self.terminal_rewards['draw'] for role in self.roles}
 
         return rewards
+
+    def generate_state_key(self):
+        raise NotImplementedError()
 
     def generate_state_key(self, state, role):
         """Converts a game state (or afterstate) into a string of

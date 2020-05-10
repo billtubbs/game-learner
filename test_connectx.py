@@ -13,6 +13,24 @@ from gamelearner import train_computer_players
 
 class TestConnectX(unittest.TestCase):
 
+    def test_check_positions(self):
+        
+        game = Connect4()
+        state = np.array([
+            [2, 1, 2, 1, 0, 2, 2],
+            [1, 2, 1, 2, 2, 1, 0],
+            [1, 2, 1, 1, 0, 0, 0],
+            [2, 0, 1, 1, 1, 2, 0],
+            [2, 0, 0, 0, 0, 0, 1],
+            [0, 2, 1, 1, 0, 0, 0]
+        ])
+        positions = (state == 1).astype('int8')
+        connect = game._check_positions(positions, 1)
+        self.assertTrue(connect)
+        positions = (state == 2).astype('int8')
+        connect = game._check_positions(positions, 1)
+        self.assertFalse(connect)
+
     def test_game_execution(self):
         """Steps through a game of Connect 4 checking
         various attributes and methods.
@@ -22,14 +40,14 @@ class TestConnectX(unittest.TestCase):
         self.assertEqual(game.roles, [1, 2])
         self.assertEqual(game.shape, (6, 7))
         
-        self.assertTrue(
-            np.array_equal(game.state, np.zeros(game.shape))
-        )
         assert_array_equal(game.state , np.zeros((6, 7), dtype='int8'))
         self.assertEqual(game._board_full.shape, (8, 9))
+        self.assertTrue(np.all(game._fill_levels == 0))
 
         # Make some moves
         game.make_move((1, 0))
+        assert_array_equal(game._fill_levels,
+                           np.array([1, 0, 0, 0, 0, 0, 0]))
 
         # Check rewards
         self.assertEqual(game.get_rewards(), {2: 0.0})
@@ -42,14 +60,14 @@ class TestConnectX(unittest.TestCase):
         game.make_move((2, 0))
 
         # Check state
-        test_state = np.array(
-            [[1, 2, 1, 0, 0, 0, 0],
+        test_state = np.array([
+            [1, 2, 1, 0, 0, 0, 0],
             [2, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0]], dtype='int8'
-        )
+            [0, 0, 0, 0, 0, 0, 0]
+        ], dtype='int8')
         assert_array_equal(game.state, test_state)
 
         self.assertFalse(game.game_over)
@@ -71,21 +89,29 @@ class TestConnectX(unittest.TestCase):
 
         assert_array_equal(
             game.state, 
-            np.array(
-                [[1, 2, 1, 0, 0, 0, 1],
+            np.array([
+                [1, 2, 1, 0, 0, 0, 1],
                 [2, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0]], dtype='int8')
+                [0, 0, 0, 0, 0, 0, 0]
+            ], dtype='int8')
         )
         self.assertEqual(game.check_game_state(), (False, None))
 
+        self.assertEqual(game.turn, 2)
+        game.reverse_move()
+        assert_array_equal(game.state, test_state)
+        self.assertEqual(game.turn, 1)
+
+        # Test new game with existing moves
         moves = [
             (1, 0), (2, 1), (1, 0), (2, 1),
             (1, 0), (2, 1)
         ]
         game = Connect4(moves=moves)
+        assert_array_equal(game.moves, moves)
         self.assertEqual(game.check_game_state(), (False, None))
         game.make_move((1, 0))
         self.assertEqual(game.check_game_state(), (True, 1))
@@ -99,29 +125,109 @@ class TestConnectX(unittest.TestCase):
                       2: game.terminal_rewards['lose']}
         )
 
-        # game.reverse_move()
+        self.assertEqual(game._pos_last, (3, 0))
+
+        game.reverse_move()
+        assert_array_equal(
+            game.moves,
+            [
+                (1, 0), (2, 1), (1, 0), (2, 1),
+                (1, 0), (2, 1)
+            ]
+        )
+
+        assert_array_equal(
+            game.state,
+            np.array([
+                [1, 2, 0, 0, 0, 0, 0],
+                [1, 2, 0, 0, 0, 0, 0],
+                [1, 2, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0]
+            ])
+        )
+        
         # self.assertTrue(np.array_equal(game.state, state))
-        # self.assertTrue(game.winner is None)
+        self.assertTrue(game.winner is None)
 
-        # with self.assertRaises(Exception) as context:
-        #     game.make_move((2, (1, 2)))
-        # self.assertTrue("It is not player 2's turn." in str(context.exception))
+        with self.assertRaises(ValueError) as context:
+            game.make_move((2, 1))
+        self.assertTrue("It is not player 2's turn." in str(context.exception))
 
-        # # Make some more moves...
-        # game.make_move((1, (1, 2)))
-        # game.make_move((2, (2, 0)))
-        # game.make_move((1, (0, 0)))
-        # game.make_move((2, (1, 0)))
-        # self.assertEqual(game.state[2, 1], 0)
+        # Make more moves until game ends
+        while not game.game_over:
+            role = game.turn
+            moves = game.available_moves()
+            move = np.random.choice(moves)
+            game.make_move((role, move))
+        
+        rewards = game.get_terminal_rewards()
+        if game.winner is None:
+            self.assertEqual(len(game.available_moves()), 0)
+            self.assertEqual(rewards, {1: game.terminal_rewards['draw'],
+                                       2: game.terminal_rewards['draw']})
+        elif game.winner is 1:
+            self.assertEqual(rewards, {1: game.terminal_rewards['win'],
+                                       2: game.terminal_rewards['lose']})
+        elif game.winner is 2:
+            self.assertEqual(rewards, {1: game.terminal_rewards['lose'],
+                                       2: game.terminal_rewards['win']})
 
-        # game.make_move((1, (2, 1)))
-        # self.assertTrue(game.game_over)
-        # self.assertEqual(game.winner, None)
-        # rewards = game.get_terminal_rewards()
-        # self.assertEqual(
-        #     rewards, {1: game.terminal_rewards['draw'],
-        #               2: game.terminal_rewards['draw']}
-        # )
+    def test_check_game_state(self):
+
+        game = Connect4(moves=None)
+        state = np.zeros(game.shape)
+        assert game.check_game_state(state) == (False, None)
+
+        state = np.array([[2, 2, 1, 2, 0, 2, 1],
+                [1, 0, 0, 0, 2, 2, 0],
+                [1, 2, 1, 2, 0, 1, 1],
+                [0, 2, 1, 2, 1, 1, 1],
+                [0, 2, 0, 2, 1, 0, 1],
+                [2, 1, 0, 2, 2, 0, 2]])
+        assert game.check_game_state(state) == (True, 2)
+
+        state = np.array([
+            [0, 0, 2, 0, 2, 2, 2],
+            [1, 1, 2, 1, 1, 2, 0],
+            [1, 1, 1, 1, 2, 0, 2],
+            [0, 1, 2, 0, 0, 2, 0],
+            [2, 1, 2, 0, 0, 2, 0],
+            [0, 1, 2, 2, 1, 2, 0]
+        ])
+        assert game.check_game_state(state) == (True, 1)
+
+        state = np.array([
+            [2, 0, 2, 1, 0, 2, 1],
+            [0, 1, 1, 0, 1, 2, 0],
+            [1, 0, 0, 0, 2, 0, 2],
+            [2, 1, 0, 0, 1, 0, 2],
+            [0, 2, 1, 0, 1, 2, 0],
+            [0, 0, 1, 2, 1, 0, 1]
+        ])
+        assert game.check_game_state(state) == (False, None)
+
+        state = np.array([
+            [0, 1, 0, 2, 2, 1, 1],
+            [2, 1, 1, 1, 0, 1, 2],
+            [2, 2, 0, 1, 1, 1, 0],
+            [1, 2, 1, 0, 0, 2, 1],
+            [1, 2, 2, 2, 1, 0, 1],
+            [0, 0, 2, 2, 1, 0, 1]
+        ])
+        assert game.check_game_state(state) == (True, 2)
+
+        state = np.array([
+            [2, 2, 2, 1, 2, 2, 2],
+            [1, 1, 1, 2, 1, 1, 1],
+            [2, 2, 2, 1, 2, 2, 2],
+            [1, 1, 1, 2, 1, 1, 1],
+            [2, 2, 2, 1, 2, 2, 2],
+            [1, 1, 1, 2, 1, 1, 1]
+        ])  # draw
+        assert game.check_game_state(state) == (True, None)
+
 
     # def test_generate_state_key(self):
     #     """Test generate_state_key method of TicTacToeGame.

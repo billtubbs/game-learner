@@ -65,6 +65,7 @@ class Connect4(Environment):
         self.n_players = 2
         self._board_full, self._state = self._empty_board_state()
         self._fill_levels = np.zeros(self.shape[1], dtype='int8')
+        self._pos_last = None
         self.winner = None
         self.player_iterator = itertools.cycle(self.roles)
         self.turn = next(self.player_iterator)
@@ -195,27 +196,51 @@ class Connect4(Environment):
         max_diag = max(max(itertools.accumulate(x, _fcum)) for x in diagonals)
         return max(max_horiz, max_vert, max_diag) >= connect
     
-    def check_game_state(self, state=None, role=None):
-        
-        game_over, winner = False, None
-
-        if state is None:
-            state = self.state
+    def _check_game_state_for_winner(self, state, role=None):
 
         # If role specified, only check for a win by role
-        if role:
-            roles = [role]
-        else:
-            roles = self.roles
+        roles = self.roles if role is None else [role]  
 
+        # Check whole state
+        winner = None
         for role in roles:
             positions = (state == role)
             if self._check_positions(positions, role):
-                game_over, winner = True, role
+                winner = role
                 break
 
-        if winner is None and np.all(state > 0):
+        return winner
+
+    def check_game_state(self, state=None, role=None):
+        #TODO: Turn this into a private method and use _check_game_state_after_move
+        # (faster) for main check_game_state method
+        game_over, winner = False, None
+        # game_over2 = None
+
+        if state is None:
+            state = self.state
+            # if self.moves:            
+            #     # Method 2: check state from position of last move only
+            #     position = (self._pos_last[0]+1, self._pos_last[1]+1)
+            #     game_over2 = self._check_game_state_from_position(position, role)
+            #     if game_over2:
+            #         winner2 = self.moves[-1][0]
+            #     else:
+            #         winner2 = None
+
+        winner = self._check_game_state_for_winner(state, role=role)
+        if winner is not None:
             game_over = True
+        else:
+            # TODO: Speed this up by checking number of moves instead
+            if np.all(state > 0):
+                game_over = True
+
+        # if game_over2 is not None:
+        #     if winner2 != winner:
+        #         breakpoint()
+        #     assert all([game_over2 == game_over,
+        #                 winner2 == winner])
 
         return game_over, winner
 

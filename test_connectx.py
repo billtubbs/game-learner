@@ -365,18 +365,36 @@ class TestConnectX(unittest.TestCase):
             moves = game.available_moves()
             move = np.random.choice(moves)
             game.make_move((role, move))
-        
+
         rewards = game.get_terminal_rewards()
         if game.winner is None:
             self.assertEqual(len(game.available_moves()), 0)
             self.assertEqual(rewards, {1: game.terminal_rewards['draw'],
                                        2: game.terminal_rewards['draw']})
-        elif game.winner is 1:
+        elif game.winner == 1:
             self.assertEqual(rewards, {1: game.terminal_rewards['win'],
                                        2: game.terminal_rewards['lose']})
-        elif game.winner is 2:
+        elif game.winner == 2:
             self.assertEqual(rewards, {1: game.terminal_rewards['lose'],
                                        2: game.terminal_rewards['win']})
+
+        # Test a game that ends in a draw
+        moves = [
+            (1, 2), (2, 3), (1, 4), (2, 1), (1, 1), (2, 5),
+            (1, 2), (2, 1), (1, 4), (2, 5), (1, 1), (2, 0),
+            (1, 0), (2, 4), (1, 1), (2, 3), (1, 1), (2, 2),
+            (1, 0), (2, 4), (1, 0), (2, 5), (1, 5), (2, 6),
+            (1, 6), (2, 2), (1, 3), (2, 0), (1, 3), (2, 4),
+            (1, 3), (2, 3), (1, 6), (2, 5), (1, 4), (2, 2),
+            (1, 2), (2, 0), (1, 5), (2, 6), (1, 6), (2, 6)
+        ]
+        self.assertEqual(len(moves), game.shape[0]*game.shape[1])
+        game = Connect4()
+        for move in moves:
+            game.make_move(move)
+        self.assertEqual(len(game.moves), len(moves))
+        self.assertTrue(game.game_over)
+        self.assertEqual(game.winner, None)
 
     # def test_generate_state_key(self):
     #     """Test generate_state_key method of TicTacToeGame.

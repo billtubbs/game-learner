@@ -212,35 +212,37 @@ class Connect4(Environment):
         return winner
 
     def check_game_state(self, state=None, role=None):
-        #TODO: Turn this into a private method and use _check_game_state_after_move
-        # (faster) for main check_game_state method
         game_over, winner = False, None
-        # game_over2 = None
 
         if state is None:
-            state = self.state
-            # if self.moves:            
-            #     # Method 2: check state from position of last move only
-            #     position = (self._pos_last[0]+1, self._pos_last[1]+1)
-            #     game_over2 = self._check_game_state_from_position(position, role)
-            #     if game_over2:
-            #         winner2 = self.moves[-1][0]
-            #     else:
-            #         winner2 = None
+            if self.moves:
+                # Check state from position of last move only
+                # No need to check rest of board as long as it
+                # was checked after every previous move.
+                role = self.moves[-1][0]
+                position = (self._pos_last[0]+1, self._pos_last[1]+1)
+                game_over = self._check_game_state_from_position(position, role)
+                if game_over:
+                    winner = self.moves[-1][0]
+                else:
+                    winner = None
+                    # Check for a draw
+                    # This is equivalent to
+                    # if np.all(self.state > 0):
+                    if len(self.moves) == self.shape[0]*self.shape[1]:
+                        game_over = True
+            else:
+                game_over, winner = False, None
+            return game_over, winner
 
+        # Check whole board state for winner
         winner = self._check_game_state_for_winner(state, role=role)
         if winner is not None:
             game_over = True
         else:
-            # TODO: Speed this up by checking number of moves instead
+            # Check for a draw
             if np.all(state > 0):
                 game_over = True
-
-        # if game_over2 is not None:
-        #     if winner2 != winner:
-        #         breakpoint()
-        #     assert all([game_over2 == game_over,
-        #                 winner2 == winner])
 
         return game_over, winner
 
@@ -256,6 +258,8 @@ class Connect4(Environment):
             move (tuple): Tuple of length 2 containing the player 
                 role and the move (role, position). Position is also
                 a tuple (row, col).
+            role_check (bool): If True, checks to make sure it is role's
+                turn.
         Returns:
             next_state (np.ndarray): copy of state after move made.
         Raises:

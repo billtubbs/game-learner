@@ -328,7 +328,7 @@ class Environment(ABC):
         pass
 
     @abstractmethod
-    def check_game_state(self, state=None, role=None, calc=False):
+    def check_game_state(self, state=None, role=None):
         """Check the environment state to see if episode
         will terminate now.
 
@@ -338,7 +338,6 @@ class Environment(ABC):
                 actual game state (self.state).
             role (int): If specified, only check for a win by this
                 game role.
-            calc (bool):
 
         returns:
             game_over, winner (bool, bool): If there is a winner,

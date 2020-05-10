@@ -219,9 +219,13 @@ class TestConnectX(unittest.TestCase):
         """
 
         game = Connect4()
+        self.assertEqual(game.name, 'Connect 4')
+        self.assertEqual(game.connect, 4)
         self.assertEqual(game.roles, [1, 2])
         self.assertEqual(game.shape, (6, 7))
-        
+        self.assertEqual(game.possible_n_players, [2])
+        self.assertEqual(game.marks, ['S', 'O'])
+
         assert_array_equal(game.state , np.zeros((6, 7), dtype='int8'))
         self.assertEqual(game._board_full.shape, (8, 9))
         self.assertTrue(np.all(game._fill_levels == 0))

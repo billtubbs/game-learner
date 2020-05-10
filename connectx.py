@@ -212,6 +212,20 @@ class Connect4(Environment):
         return winner
 
     def check_game_state(self, state=None, role=None):
+        """Check the game state to see if it will terminate now.
+
+        Args:
+            state (np.array): If not None, check if this game state
+                array is a game-over state, otherwise check the
+                actual game state (self.state).
+            role (int): If specified, only check for a win by this
+                game role.
+
+        returns:
+            game_over, winner (bool, bool): If there is a winner,
+                winner will be the winning role. If the game is over,
+                game_over will be True.
+        """
         game_over, winner = False, None
 
         if state is None:
@@ -235,7 +249,8 @@ class Connect4(Environment):
                 game_over, winner = False, None
             return game_over, winner
 
-        # Check whole board state for winner
+        # If state was provided as an argument then need to
+        # check whole state for winner
         winner = self._check_game_state_for_winner(state, role=role)
         if winner is not None:
             game_over = True
@@ -460,175 +475,175 @@ def fork_positions(game, role, available_positions, state=None):
     return positions
 
 
-def test_player(player, game=Connect4, seed=1):
-    """
-    Calculates a score based on the player's performance playing 100
-    games of Tic Tac Toe, 50 against a random player and 50 against
-    an expert. Score is calculated as follows:
-
-    score = (1 - random_player.games_won/50)* \
-            (random_player.games_lost/50)* \
-            (1 - expert_player.games_won/50)
-
-    An expert player should be able to get a score between 0.86 and
-    1.0 (it's not possible to always win against a random player).
-
-    Args:
-        player (Player): Player instance.
-        game (class): Class of game to use for the tests.
-        seed (int): Random number generator seed. Changing this
-            will change the test results slightly.
-
-    Returns:
-        score (float): Score between 0.0 and 1.0.
-    """
-
-    # Instantiate two computer opponents
-    random_player = RandomPlayer(seed=seed)
-    expert_player = TicTacToeExpert(seed=seed)
-
-    # Make a shuffled list of the order of play
-    opponents = [random_player]*50 + [expert_player]*50
-    rng = random.Random(seed)
-    rng.shuffle(opponents)
-
-    game = game()
-    player.updates_on, saved_mode = False, player.updates_on
-    for i, opponent in enumerate(opponents):
-        players = [player, opponent]
-        ctrl = GameController(game, players, move_first=i % 2)
-        ctrl.play(show=False)
-        game.reset()
-    player.updates_on = saved_mode
-
-    score = (1 - random_player.games_won / 50) * \
-            (random_player.games_lost / 50) * \
-            (1 - expert_player.games_won / 50)
-
-    return score
-
-
-def demo():
-    """Simple demo of TicTacToeGame game dynamics.
-    """
-
-    game = TicTacToeGame()
-    print("Game:", game)
-    print("Marks:", game.marks)
-    print("Roles:", game.roles)
-    print("State:\n", game.state)
-
-    print("Making some moves...")
-    game.make_move((1, (0, 2)), show=True)
-    game.make_move((2, (0, 1)), show=True)
-    game.make_move((1, (1, 1)), show=True)
-    game.make_move((2, (2, 2)), show=True)
-    game.show_state()
-    print("State:\n", game.state)
-
-    print("Game over:", game.game_over)
-
-    print("Moves so far:")
-    print(game.moves)
-
-    print("Turn:", game.turn)
-    print("Available moves:", game.available_moves())
-
-    game.make_move((1, (2, 0)), show=True)
-    game.show_state()
-
-    print("Game over:", game.game_over)
-    print("Winner:", game.winner)
-
-    game.reverse_move(show=True)
-    game.show_state()
-
-    print("Winner:", game.winner)
-
-    print("Try player 2 move...")
-    try:
-        game.make_move((2, (1, 2)))
-    except ValueError as err:
-        print(err)
-
-    print("Making some more moves...")
-    game.make_move((1, (1, 2)), show=True)
-    game.make_move((2, (2, 0)), show=True)
-    game.make_move((1, (0, 0)), show=True)
-    game.make_move((2, (1, 0)), show=True)
-    game.show_state()
-    game.make_move((1, (2, 1)), show=True)
-    print("Game over:", game.game_over)
-    print("Winner:", game.winner)
-
-
-def tictactoe_game(players, move_first=0, show=True):
-    """Demo of TicTacToeGame with two pre-defined players.
-
-    Args:
-        players (list): List of 2 Player instances.
-        move_first (int): Specify which player should go first.
-        show (bool): Print a message if True.
-    """
-
-    ctrl = GameController(TicTacToeGame(), players, move_first=move_first)
-    ctrl.play(show=show)
-
-
-def tictactoe_with_2_humans(names=("Player 1", "Player 2"), move_first=0,
-                            n=1):
-    """Demo of TicTacToeGame with two new human players.
-
-    Args:
-        names (list): A list containing two strings for names
-            of the players (optional).
-        move_first (int): Specify which player should go first.
-        n (int or None): Number of games to play.  If n=None,
-            it will loop indefinitely.
-    """
-
-    game = TicTacToeGame()
-    players = [HumanPlayer(name) for name in names]
-    play_looped_games(game, players, move_first=move_first, n=n)
-
-
-def main():
-    """Code to demonstrate use of this module."""
-
-    print("\nPlay Tic-Tac-Toe (Noughts and Crosses) against the "
-          "computer.")
-    game = TicTacToeGame()
-    computer_player = TDLearner("TD")
-    name = input("Enter your name: ")
-    human_player = HumanPlayer(name)
-    n_iterations = 1000
-
-    while True:
-
-        # Train computer against itself
-        # To do this you need to make a clone with the
-        # same value function
-        opponent = TDLearner("TD-clone")
-        opponent.value_function = computer_player.value_function
-
-        print("Computer is playing %d games against a clone of "
-              "itself..." % n_iterations)
-        train_computer_players(game, [computer_player, opponent],
-                               n_iterations)
-
-        print("Now play against it.")
-        game = TicTacToeGame()
-        players = [human_player, computer_player]
-        play_looped_games(game, players)
-
-        # Slowly reduce the learning rate
-        computer_player.learning_rate *= 0.9
-        computer_player.off_policy_rate *= 0.9
-
-        text = input("Press enter to do more training or 'q' to quit: ")
-        if text.strip().lower() == 'q':
-            break
-
-
-if __name__ == "__main__":
-    main()
+# def test_player(player, game=Connect4, seed=1):
+#     """
+#     Calculates a score based on the player's performance playing 100
+#     games of Connect4, 50 against a random player and 50 against
+#     an expert. Score is calculated as follows:
+#
+#     score = (1 - random_player.games_won/50)* \
+#             (random_player.games_lost/50)* \
+#             (1 - expert_player.games_won/50)
+#
+#     An expert player should be able to get a score between 0.86 and
+#     1.0 (it's not possible to always win against a random player).
+#
+#     Args:
+#         player (Player): Player instance.
+#         game (class): Class of game to use for the tests.
+#         seed (int): Random number generator seed. Changing this
+#             will change the test results slightly.
+#
+#     Returns:
+#         score (float): Score between 0.0 and 1.0.
+#     """
+#
+#     # Instantiate two computer opponents
+#     random_player = RandomPlayer(seed=seed)
+#     expert_player = Connect4Expert(seed=seed)
+#
+#     # Make a shuffled list of the order of play
+#     opponents = [random_player]*50 + [expert_player]*50
+#     rng = random.Random(seed)
+#     rng.shuffle(opponents)
+#
+#     game = game()
+#     player.updates_on, saved_mode = False, player.updates_on
+#     for i, opponent in enumerate(opponents):
+#         players = [player, opponent]
+#         ctrl = GameController(game, players, move_first=i % 2)
+#         ctrl.play(show=False)
+#         game.reset()
+#     player.updates_on = saved_mode
+#
+#     score = (1 - random_player.games_won / 50) * \
+#             (random_player.games_lost / 50) * \
+#             (1 - expert_player.games_won / 50)
+#
+#     return score
+#
+#
+# def demo():
+#     """Simple demo of TicTacToeGame game dynamics.
+#     """
+#
+#     game = TicTacToeGame()
+#     print("Game:", game)
+#     print("Marks:", game.marks)
+#     print("Roles:", game.roles)
+#     print("State:\n", game.state)
+#
+#     print("Making some moves...")
+#     game.make_move((1, (0, 2)), show=True)
+#     game.make_move((2, (0, 1)), show=True)
+#     game.make_move((1, (1, 1)), show=True)
+#     game.make_move((2, (2, 2)), show=True)
+#     game.show_state()
+#     print("State:\n", game.state)
+#
+#     print("Game over:", game.game_over)
+#
+#     print("Moves so far:")
+#     print(game.moves)
+#
+#     print("Turn:", game.turn)
+#     print("Available moves:", game.available_moves())
+#
+#     game.make_move((1, (2, 0)), show=True)
+#     game.show_state()
+#
+#     print("Game over:", game.game_over)
+#     print("Winner:", game.winner)
+#
+#     game.reverse_move(show=True)
+#     game.show_state()
+#
+#     print("Winner:", game.winner)
+#
+#     print("Try player 2 move...")
+#     try:
+#         game.make_move((2, (1, 2)))
+#     except ValueError as err:
+#         print(err)
+#
+#     print("Making some more moves...")
+#     game.make_move((1, (1, 2)), show=True)
+#     game.make_move((2, (2, 0)), show=True)
+#     game.make_move((1, (0, 0)), show=True)
+#     game.make_move((2, (1, 0)), show=True)
+#     game.show_state()
+#     game.make_move((1, (2, 1)), show=True)
+#     print("Game over:", game.game_over)
+#     print("Winner:", game.winner)
+#
+#
+# def tictactoe_game(players, move_first=0, show=True):
+#     """Demo of TicTacToeGame with two pre-defined players.
+#
+#     Args:
+#         players (list): List of 2 Player instances.
+#         move_first (int): Specify which player should go first.
+#         show (bool): Print a message if True.
+#     """
+#
+#     ctrl = GameController(TicTacToeGame(), players, move_first=move_first)
+#     ctrl.play(show=show)
+#
+#
+# def tictactoe_with_2_humans(names=("Player 1", "Player 2"), move_first=0,
+#                             n=1):
+#     """Demo of TicTacToeGame with two new human players.
+#
+#     Args:
+#         names (list): A list containing two strings for names
+#             of the players (optional).
+#         move_first (int): Specify which player should go first.
+#         n (int or None): Number of games to play.  If n=None,
+#             it will loop indefinitely.
+#     """
+#
+#     game = TicTacToeGame()
+#     players = [HumanPlayer(name) for name in names]
+#     play_looped_games(game, players, move_first=move_first, n=n)
+#
+#
+# def main():
+#     """Code to demonstrate use of this module."""
+#
+#     print("\nPlay Tic-Tac-Toe (Noughts and Crosses) against the "
+#           "computer.")
+#     game = TicTacToeGame()
+#     computer_player = TDLearner("TD")
+#     name = input("Enter your name: ")
+#     human_player = HumanPlayer(name)
+#     n_iterations = 1000
+#
+#     while True:
+#
+#         # Train computer against itself
+#         # To do this you need to make a clone with the
+#         # same value function
+#         opponent = TDLearner("TD-clone")
+#         opponent.value_function = computer_player.value_function
+#
+#         print("Computer is playing %d games against a clone of "
+#               "itself..." % n_iterations)
+#         train_computer_players(game, [computer_player, opponent],
+#                                n_iterations)
+#
+#         print("Now play against it.")
+#         game = TicTacToeGame()
+#         players = [human_player, computer_player]
+#         play_looped_games(game, players)
+#
+#         # Slowly reduce the learning rate
+#         computer_player.learning_rate *= 0.9
+#         computer_player.off_policy_rate *= 0.9
+#
+#         text = input("Press enter to do more training or 'q' to quit: ")
+#         if text.strip().lower() == 'q':
+#             break
+#
+#
+# if __name__ == "__main__":
+#     main()

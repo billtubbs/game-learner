@@ -5,7 +5,7 @@ reinforcement learning algorithms.
 
 import numpy as np
 import itertools
-from gamelearner import Environment
+from gamelearner import Environment, GameController
 
 
 class Connect4(Environment):
@@ -149,7 +149,6 @@ class Connect4(Environment):
         return i
 
     def _check_game_state_after_move(self, move, board_full=None):
-
         if board_full is None:
             board_full = self._board_full
             fill_levels = self._fill_levels
@@ -157,10 +156,14 @@ class Connect4(Environment):
             state = self.state_from_board_full(board_full)
             fill_levels = self._get_fill_levels(state)
         role, column = move
-        level = self._fill_levels[column]
+        level = fill_levels[column]
         assert level < self.shape[0]
         position = (level+1, column+1)
         assert board_full[position] == 0
+        return self._check_game_state_from_position(position, role, 
+                                                    board_full=board_full)
+
+    def _check_game_state_from_position(self, position, role, board_full=None):
         results = {}
         for direction, step in self._steps.items():
             n = self._chain_in_direction(position, direction, role, board_full)
@@ -273,6 +276,7 @@ class Connect4(Environment):
 
         self.moves.pop()
         self.state[self._pos_last] = 0  # Removes last disc from board
+        self._fill_levels = self._get_fill_levels(self.state)
         self.turn = next(self.player_iterator)  # TODO: Only works for 2 player games!
         self.check_if_game_over()
 

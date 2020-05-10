@@ -82,9 +82,12 @@ class Connect4(Environment):
         """Initialize board_full and state."""
         # board_full has a border set to -1
         board_full = -np.ones(np.array(self.shape) + (2, 2), dtype='int8')
-        state = board_full[1:1+self.shape[0], 1:1+self.shape[1]]
+        state = self.state_from_board_full(board_full)
         state[:] = 0
         return board_full, state
+
+    def state_from_board_full(self, board_full):
+        return board_full[1:1+self.shape[0], 1:1+self.shape[1]]
 
     def reset(self):
         """Set the state of the game back to the beginning
@@ -125,35 +128,45 @@ class Connect4(Environment):
         
         return np.nonzero(spaces_left)[0]
 
-    @staticmethod
-    def _get_neighbours(board_full, pos):
+    def _get_neighbours(self, pos, board_full=None):
+        #TODO: Is this method actually used?
+        if board_full is None:
+            board_full = self._board_full
         neighbours = {d: board_full[(step[0]+pos[0], step[1]+pos[1])] 
                       for d, step in self._steps.items()}
         return neighbours
 
-    @staticmethod
-    def _chain_in_direction(board_full, pos, direction, role):
+    def _chain_in_direction(self, position, direction, role, board_full=None):
         """Finds number of matching discs in one direction."""
+        if board_full is None:
+            board_full = self._board_full
         step = self._steps[direction]
         for i in range(self.connect):
-            pos = (step[0]+pos[0], step[1]+pos[1])
-            x = board_full[pos]
+            position = (step[0]+position[0], step[1]+position[1])
+            x = board_full[position]
             if x != role:
                 break
         return i
 
-    def _check_game_state_after_move(self, board_full, move):
+    def _check_game_state_after_move(self, move, board_full=None):
 
+        if board_full is None:
+            board_full = self._board_full
+            fill_levels = self._fill_levels
+        else:
+            state = self.state_from_board_full(board_full)
+            fill_levels = self._get_fill_levels(state)
         role, column = move
-        #TODO: Need to implement fill_levels with state
-        assert board_full[pos] == 0
+        level = self._fill_levels[column]
+        assert level < self.shape[0]
+        position = (level+1, column+1)
+        assert board_full[position] == 0
         results = {}
         for direction, step in self._steps.items():
-            n = self._chain_in_direction(board_full, pos, direction, role)
+            n = self._chain_in_direction(position, direction, role, board_full)
             if n == self.connect - 1:
                 return True
             results[direction] = n
-
         for d1, d2 in [('u', 'd'), ('l', 'r'), ('ul', 'dr'), ('dl', 'ur')]:
             if results[d1] + results[d2] >= self.connect-1:
                 return True

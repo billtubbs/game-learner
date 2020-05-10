@@ -13,6 +13,49 @@ from gamelearner import train_computer_players
 
 class TestConnectX(unittest.TestCase):
 
+    def test_check_game_state_after_move(self):
+
+        # Setup a board state
+        moves = [
+            (1, 3), (2, 6), (1, 0), (2, 5), (1, 2),
+            (2, 2), (1, 5), (2, 1), (1, 3), (2, 1),
+            (1, 6), (2, 2), (1, 4), (2, 4), (1, 4),
+            (2, 4), (1, 1)
+        ]
+        game = Connect4(moves=moves)
+
+        # Prepare a move by player 1
+        role = 2
+        column = 3
+        move = (role, column)
+        level = game._fill_levels[column]
+        position = (level+1, column+1)
+        self.assertEqual(game._board_full[position], 0)
+        # Calculate chains in each direction from the move position
+        chain_lengths = {
+            direction: game._chain_in_direction(position, direction, role)
+            for direction in ['u', 'd', 'r', 'l', 'ur', 'dr', 'ul', 'dl']
+        }
+        self.assertEqual(
+            chain_lengths,
+            {'u': 0, 'd': 2, 'r': 1, 'l': 0, 'ur': 0, 'dr': 0, 'ul': 0, 'dl': 0}
+        )
+        self.assertFalse(game._check_game_state_after_move(move))
+
+        # Prepare a move by player 2
+        role = 2
+        move = (role, column)
+        # Calculate chains in each direction from the move position
+        chain_lengths = {
+            direction: game._chain_in_direction(position, direction, role)
+            for direction in ['u', 'd', 'r', 'l', 'ur', 'dr', 'ul', 'dl']
+        }
+        self.assertEqual(
+            chain_lengths,
+            {'u': 0, 'd': 0, 'r': 0, 'l': 1, 'ur': 1, 'dr': 2, 'ul': 0, 'dl': 2}
+        )
+        self.assertTrue(game._check_game_state_after_move(move))
+
     def test_check_positions(self):
         
         game = Connect4()
@@ -30,6 +73,48 @@ class TestConnectX(unittest.TestCase):
         positions = (state == 2).astype('int8')
         connect = game._check_positions(positions, 1)
         self.assertFalse(connect)
+    
+    def test_check_game_state_after_move(self):
+
+        moves = [
+            (1, 3), (2, 6), (1, 0), (2, 5), (1, 2),
+            (2, 2), (1, 5), (2, 1), (1, 3), (2, 1),
+            (1, 6), (2, 2), (1, 4), (2, 4), (1, 4),
+            (2, 4), (1, 1), (2, 3)
+        ]
+        game = Connect4(moves=moves)
+        self.assertEqual(game._pos_last, (2, 3))
+
+    def test_available_moves(self):
+
+        game = Connect4()
+        state = game.state.copy()
+
+        state[:] = np.zeros(game.shape, dtype='int8')
+        self.assertEqual(
+            game.available_moves(state).tolist(),
+            [0, 1, 2, 3, 4, 5, 6]
+        )
+        state[0, 3] = 1
+        self.assertEqual(
+            game.available_moves(state).tolist(),
+            [0, 1, 2, 3, 4, 5, 6]
+        )
+        state[0:5, 1] = 2
+        self.assertEqual(
+            game.available_moves(state).tolist(),
+            [0, 1, 2, 3, 4, 5, 6]
+        )
+        state[0:6, game.shape[1]-1] = 1
+        self.assertEqual(
+            game.available_moves(state).tolist(),
+            [0, 1, 2, 3, 4, 5]
+        )
+        state[:, :] = 1
+        self.assertEqual(
+            game.available_moves(state).tolist(),
+            []
+        )
 
     def test_game_execution(self):
         """Steps through a game of Connect 4 checking
@@ -44,8 +129,9 @@ class TestConnectX(unittest.TestCase):
         self.assertEqual(game._board_full.shape, (8, 9))
         self.assertTrue(np.all(game._fill_levels == 0))
 
-        # Make some moves
         game.make_move((1, 0))
+
+        # Check game attributes
         assert_array_equal(game._fill_levels,
                            np.array([1, 0, 0, 0, 0, 0, 0]))
 

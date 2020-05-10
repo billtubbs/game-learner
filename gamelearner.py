@@ -371,9 +371,9 @@ class Environment(ABC):
         """Converts a game state (or afterstate) into a hashable key
         that can be used by tabular value functions for storing and
         retrieving state values.
-        
+
         Implement this method for each environment.
-        
+
         Could be a string of bytes or an integer for example (as long
         as there is a unique correspondence between states and keys).
 

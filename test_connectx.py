@@ -122,10 +122,10 @@ class TestConnectX(unittest.TestCase):
             [0, 2, 1, 1, 0, 0, 0]
         ])
         positions = (state == 1).astype('int8')
-        connect = game._check_positions(positions, 1)
+        connect = game._check_positions(positions)
         self.assertTrue(connect)
         positions = (state == 2).astype('int8')
-        connect = game._check_positions(positions, 1)
+        connect = game._check_positions(positions)
         self.assertFalse(connect)
     
     def test_available_moves(self):
@@ -226,21 +226,27 @@ class TestConnectX(unittest.TestCase):
         self.assertEqual(game.possible_n_players, [2])
         self.assertEqual(game.marks, ['S', 'O'])
 
-        assert_array_equal(game.state , np.zeros((6, 7), dtype='int8'))
+        assert_array_equal(game.state, np.zeros((6, 7), dtype='int8'))
         self.assertEqual(game._board_full.shape, (8, 9))
         self.assertTrue(np.all(game._fill_levels == 0))
+        self.assertFalse(game.game_over)
+        self.assertEqual(game.winner, None)
 
         game.make_move((1, 0))
 
         # Check game attributes
         assert_array_equal(game._fill_levels,
                            np.array([1, 0, 0, 0, 0, 0, 0]))
-
-        # Check rewards
+        self.assertFalse(game.game_over)
+        self.assertEqual(game.winner, None)
         self.assertEqual(game.get_rewards(), {2: 0.0})
 
         game.make_move((2, 1))
 
+        assert_array_equal(game._fill_levels,
+                           np.array([1, 1, 0, 0, 0, 0, 0]))
+        self.assertFalse(game.game_over)
+        self.assertEqual(game.winner, None)
         self.assertEqual(game.get_rewards(), {1: 0.0})
 
         game.make_move((1, 2))
@@ -276,6 +282,7 @@ class TestConnectX(unittest.TestCase):
         self.assertEqual(game._pos_last, test_pos_last)
 
         self.assertFalse(game.game_over)
+        self.assertEqual(game.winner, None)
 
         moves = [(1, 0), (2, 1), (1, 2), (2, 0)]
         self.assertEqual(game.moves, moves)
@@ -289,6 +296,9 @@ class TestConnectX(unittest.TestCase):
         # Initialize game from same state
         game = Connect4(moves=moves)
         assert_array_equal(game.state, test_state)
+        self.assertFalse(game.game_over)
+        self.assertEqual(game.winner, None)
+        assert_array_equal(game._fill_levels, test_fill_levels)
 
         game.make_move((1, 6))
 

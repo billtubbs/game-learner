@@ -181,7 +181,7 @@ class Connect4(Environment):
         # Note: This assumes proper filling!
         return (state[:, col] > 0).sum()
 
-    def _check_positions(self, positions, role, connect=None):
+    def _check_positions(self, positions, connect=None):
         """Check bool array positions for a connect x."""
         if connect is None:
             connect = self.connect
@@ -205,7 +205,7 @@ class Connect4(Environment):
         winner = None
         for role in roles:
             positions = (state == role)
-            if self._check_positions(positions, role):
+            if self._check_positions(positions):
                 winner = role
                 break
 

@@ -481,7 +481,7 @@ class TicTacToeExpert(Player):
             move = (role, self.rng.choice(available_moves))
 
         if show:
-            print("%s's turn (%s): %s" % (self.name, move_format, str(move)))
+            print("%s's turn (%s): %s" % (self.name, move_format, str(move[1])))
 
         return move
 

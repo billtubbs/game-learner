@@ -8,7 +8,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from connectx import Connect4
-from gamelearner import train_computer_players
+from gamelearner import RandomPlayer, GameController
+#from gamelearner import train_computer_players
 
 
 class TestConnectX(unittest.TestCase):
@@ -224,7 +225,7 @@ class TestConnectX(unittest.TestCase):
         self.assertEqual(game.roles, [1, 2])
         self.assertEqual(game.shape, (6, 7))
         self.assertEqual(game.possible_n_players, [2])
-        self.assertEqual(game.marks, ['S', 'O'])
+        self.assertEqual(game.marks, ['X', 'O'])
 
         assert_array_equal(game.state, np.zeros((6, 7), dtype='int8'))
         self.assertEqual(game._board_full.shape, (8, 9))
@@ -409,6 +410,17 @@ class TestConnectX(unittest.TestCase):
         self.assertEqual(len(game.moves), len(moves))
         self.assertTrue(game.game_over)
         self.assertEqual(game.winner, None)
+
+    def test_with_GameController(self):
+
+        game = Connect4()
+        player1 = RandomPlayer('R1')
+        player2 = RandomPlayer('R2')
+
+        players = [player1, player2]
+        ctrl = GameController(game, players)
+        ctrl.play(show=False)
+        self.assertTrue(game.game_over)
 
     # def test_generate_state_key(self):
     #     """Test generate_state_key method of TicTacToeGame.

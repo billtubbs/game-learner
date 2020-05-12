@@ -28,12 +28,12 @@ class Connect4(Environment):
     shape = (6, 7)
     roles = [1, 2]
     possible_n_players = [2]
-    marks = ['S', 'O']
+    marks = ['X', 'O']
     connect = 4
     terminal_rewards = {'win': 1.0, 'lose': 0.0, 'draw': 0.5}
 
     help_text = {
-        'Move format': "row, col from bottom left",
+        'Move format': "column from left",
         'Move not available': "That position is not available.",
         'Number of players': "This game requires 2 players.",
         'Out of range': "slot must be in range 0 to %d." % (shape[1] - 1)

@@ -3,9 +3,10 @@
 reinforcement learning algorithms.
 """
 
+import random
 import numpy as np
 import itertools
-from gamelearner import Environment, GameController
+from gamelearner import Environment, Player
 
 
 class Connect4(Environment):
@@ -473,6 +474,37 @@ def fork_positions(game, role, available_positions, state=None):
             positions.append(p1)
 
     return positions
+
+
+class Connect4BasicPlayer(Player):
+    """Basic computer player that avoids obviously dumb moves.
+    """
+
+    def __init__(self, name="COMPUTER", seed=None):
+
+        super().__init__(name)
+
+        # Independent random number generator for sole use
+        # by this instance
+        self.rng = random.Random(seed)
+
+    def decide_next_move(self, game, role, show=False):
+
+        move_format = game.help_text['Move format']
+        available_moves = game.available_moves()
+        corners = [(0, 0), (0, 2), (2, 0), (2, 2)]
+        center = (1, 1)
+        opponent = game.roles[(game.roles.index(role) ^ 1)]
+
+        # TODO: Implement basic player algorithm
+        column = 3
+
+        move = (role, column)
+
+        if show:
+            print("%s's turn (%s): %s" % (self.name, move_format, str(column)))
+
+        return move
 
 
 # def test_player(player, game=Connect4, seed=1):

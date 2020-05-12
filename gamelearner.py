@@ -22,6 +22,7 @@ Barto's book Reinforcement Learning: An Introduction.
 # - Are there proven ways to reduce learning_rate?
 # - Allow player to be initialised from pickle file
 # - Consider using property decorators
+# - Consider renaming 'position' as 'action' for generality
 
 from abc import ABC, abstractmethod
 import numpy as np
@@ -640,11 +641,12 @@ class RandomPlayer(Player):
 
     def decide_next_move(self, game, role, show=False):
         available_moves = game.available_moves()
-        move = (role, self.rng.choice(available_moves))
+        position = self.rng.choice(available_moves)
+        move = (role, position)
 
         if show:
             move_format = game.help_text['Move format']
-            print("%s's turn (%s): %s" % (self.name, move_format, str(move)))
+            print("%s's turn (%s): %s" % (self.name, move_format, str(position)))
 
         return move
 

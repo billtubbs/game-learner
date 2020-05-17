@@ -405,15 +405,17 @@ class Connect4(Environment):
         return np.array(chars, dtype='a')[state].tostring()
 
 
-def wins_from_next_move(game, role, board_full=None):
+def wins_from_next_move(game, role, board_full=None, moves=None):
     if board_full is None:
         board_full = game._board_full
         state = game.state
     else:
-        state = game.state_from_board_full(board_full)        
+        state = game.state_from_board_full(board_full)  
+    if moves is None:
+        moves = game.available_moves(state)
     wins = {}
     fill_levels = game._get_fill_levels(state)
-    for col in game.available_moves(state):
+    for col in moves:
         pos_fb = (fill_levels[col]+1, col+1)
         win = game._check_game_state_from_position(pos_fb, role, board_full=board_full)
         wins[col] = win

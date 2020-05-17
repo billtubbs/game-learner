@@ -584,6 +584,30 @@ class TestAnalysisFunctions(unittest.TestCase):
             {0: False, 1: False, 2: False, 3: False, 4: False, 5: False, 6: False}
         )
 
+        state[:] = 1
+        role = 1
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {}
+        )
+        role = 2
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {}
+        )
+
+        state[:] = 2
+        role = 1
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {}
+        )
+        role = 2
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {}
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

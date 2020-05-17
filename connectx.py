@@ -464,7 +464,7 @@ def check_for_obvious_move(game, role, board_full=None,
         # 2. Check if draw (last move but no win)
         if fill_levels[list(possible_moves.keys())[0]] == game.shape[0] - 1:
             return terminal_values['draw'], list(possible_moves.keys())
-        #TODO: Continue deeper search if only one move possible
+        #TODO: Could continue deeper search if only one move possible
     elif len(possible_moves) == 0:
         raise ValueError("No available moves")
 
@@ -485,7 +485,7 @@ def check_for_obvious_move(game, role, board_full=None,
             opp_move_values[col] = value
             if value == win_value:
                 opp_wins[col] = len(moves)
-            elif value == terminal_values['loss']:
+            elif value == loss_value:
                 opp_losses[col] = len(moves)
             else:
                 other_moves.append(col)
@@ -585,25 +585,23 @@ class Connect4BasicPlayer(Player):
     """Basic computer player that avoids obviously dumb moves.
     """
 
-    def __init__(self, name="COMPUTER", seed=None):
-
+    def __init__(self, name="COMPUTER", seed=None, depth=3):
         super().__init__(name)
-
-        # Independent random number generator for sole use
-        # by this instance
+        self.depth = depth
+        # Independent random number generator
         self.rng = random.Random(seed)
 
     def decide_next_move(self, game, role, show=False):
 
         move_format = game.help_text['Move format']
-        available_moves = game.available_moves()
-        corners = [(0, 0), (0, 2), (2, 0), (2, 2)]
-        center = (1, 1)
-        opponent = game.roles[(game.roles.index(role) ^ 1)]
 
-        # TODO: Implement basic player algorithm
-        column = 3
+        value, moves = check_for_obvious_move(game, role, board_full=None, 
+                                       depth=self.depth)
 
+        if len(game.moves) > 0:
+            column = self.rng.choice(moves)
+        else:
+            column = 3
         move = (role, column)
 
         if show:

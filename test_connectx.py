@@ -661,6 +661,33 @@ class TestAnalysisFunctions(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             check_for_obvious_move(game, role, board_full=board_full, depth=3)
 
+        # 'O' can't win from this state:
+        # _ _ _ _ _ _ _
+        # _ _ _ _ _ _ _
+        # _ _ _ O _ _ X
+        # _ _ O X _ _ O
+        # _ _ X X X _ O
+        # _ O X X O _ O
+        # but depth 3 search needed to realise that
+        game = Connect4()
+        game.state[:] = np.array([
+            [0, 0, 1, 1, 2, 0, 2],
+            [0, 0, 1, 1, 1, 0, 2],
+            [0, 0, 2, 1, 0, 0, 2],
+            [0, 0, 0, 2, 0, 0, 1],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0]
+        ])
+        role = 2
+        moves = check_for_obvious_move(game, role, depth=0)
+        self.assertEqual(moves, (None, [0, 1, 2, 3, 4, 5, 6]))
+        moves = check_for_obvious_move(game, role, depth=1)
+        self.assertEqual(moves, (None, [0, 2, 3, 4, 6]))
+        moves = check_for_obvious_move(game, role, depth=2)
+        self.assertEqual(moves, (None, [0, 2, 3, 4, 6]))
+        moves = check_for_obvious_move(game, role, depth=3)
+        self.assertEqual(moves, (-1, [1, 5]))
+
 
 if __name__ == '__main__':
     unittest.main()

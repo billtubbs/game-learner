@@ -151,6 +151,18 @@ class Connect4(Environment):
                 break
         return i
 
+    def _check_game_state_from_position(self, position, role, board_full=None):
+        results = {}
+        for direction, step in self._steps.items():
+            n = self._chain_in_direction(position, direction, role, board_full)
+            if n == self.connect - 1:
+                return True
+            results[direction] = n
+        for d1, d2 in [('u', 'd'), ('l', 'r'), ('ul', 'dr'), ('dl', 'ur')]:
+            if results[d1] + results[d2] >= self.connect-1:
+                return True
+        return False
+
     def _check_game_state_after_move(self, move, board_full=None):
         if board_full is None:
             board_full = self._board_full
@@ -165,18 +177,6 @@ class Connect4(Environment):
         assert board_full[position] == 0
         return self._check_game_state_from_position(position, role, 
                                                     board_full=board_full)
-
-    def _check_game_state_from_position(self, position, role, board_full=None):
-        results = {}
-        for direction, step in self._steps.items():
-            n = self._chain_in_direction(position, direction, role, board_full)
-            if n == self.connect - 1:
-                return True
-            results[direction] = n
-        for d1, d2 in [('u', 'd'), ('l', 'r'), ('ul', 'dr'), ('dl', 'ur')]:
-            if results[d1] + results[d2] >= self.connect-1:
-                return True
-        return False
 
     @staticmethod
     def _next_available_position(state, col):

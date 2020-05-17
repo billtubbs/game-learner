@@ -422,6 +422,93 @@ def wins_from_next_move(game, role, board_full=None, moves=None):
     return wins
 
 
+def check_for_obvious_move(game, role, board_full=None, 
+                           terminal_values={'win': 1, 'loss': -1, 'draw':0},
+                           depth=1):
+    """Analyses the current board state (or board_full if
+    provided) from the perspective of the player role.
+    
+    Returns
+        value, positions (float, list): value of the current
+            state if it is a terminal state (from terminal_values) 
+            else None, and a list of best positions (columns) to 
+            play on next move.
+    """
+    if board_full is None:
+        board_full = game._board_full
+        state = game.state
+        fill_levels = game._fill_levels
+    else:
+        state = game.state_from_board_full(board_full)
+        fill_levels = game._get_fill_levels(state)
+    opponent = role ^ 3
+    win_value, loss_value = (terminal_values['win'], 
+                             terminal_values['loss'])
+
+    # TODO: This should not be in this func
+    # 0. Check if early move of game
+    #if n_moves == 0:
+    #    return None, [3]
+    #elif (n_moves == 1) and (state[0,3] == opponent):
+    #    return None, [3]
+    
+    # 1. Check for a win by role on next move
+    possible_moves = wins_from_next_move(game, role, board_full=board_full)
+    n_wins = sum(possible_moves.values())
+    if n_wins > 0:
+        winning_moves = [col for col, win in possible_moves.items() if win]
+        return win_value, winning_moves
+
+    if len(possible_moves) == 1:
+        # 2. Check if draw (last move but no win)
+        if fill_levels[list(possible_moves.keys())[0]] == game.shape[0] - 1:
+            return terminal_values['draw'], list(possible_moves.keys())
+        #TODO: Continue deeper search if only one move possible
+    elif len(possible_moves) == 0:
+        raise ValueError("No available moves")
+
+    if depth > 0:
+        # 3. Check what opponent could do next for each possible move
+        bf2 = board_full.copy()  # TODO: Could remove if sure it is restored
+        state = game.state_from_board_full(bf2)
+        fill_levels = game._get_fill_levels(state)
+        opp_wins = {}
+        opp_losses = {}
+        other_moves = []
+        opp_move_values = {}
+        for col in possible_moves:
+            assert state[fill_levels[col], col] == 0  # TODO: delete later
+            state[fill_levels[col], col] = role  # Next state after move
+            value, moves = check_for_obvious_move(game, opponent, board_full=bf2,
+                                                  depth=depth-1)
+            opp_move_values[col] = value
+            if value == win_value:
+                opp_wins[col] = len(moves)
+            elif value == terminal_values['loss']:
+                opp_losses[col] = len(moves)
+            else:
+                other_moves.append(col)
+            state[fill_levels[col], col] = 0  # Reverse move
+
+        # 4. Take any move where opponent will definitely lose
+        if len(opp_losses) > 0:
+            return win_value, [col for col, value in opp_move_values.items()
+                               if value == loss_value]
+
+        # 5. If opponent will possibly win for all moves, assume defeat
+        if len(opp_wins) == len(possible_moves):
+            fewest = [col for col, n_win_moves in opp_wins.items()
+                      if n_win_moves == min(opp_wins.values())]
+            return loss_value, fewest
+
+        # 6. Avoid any move where opponent will definitely win
+        if len(opp_wins) > 0:
+            return None, other_moves
+
+    # Otherwise, return no value
+    return None, list(possible_moves.keys())
+
+
 def winning_positions(game, role, available_positions=None, state=None):
     """Returns list of positions (row, col) that would result
     in player role winning if they took that position.

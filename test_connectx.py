@@ -7,8 +7,8 @@ import unittest
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from connectx import Connect4, wins_from_next_move
 from gamelearner import RandomPlayer, GameController
+from connectx import Connect4, wins_from_next_move, check_for_obvious_move
 #from gamelearner import train_computer_players
 
 
@@ -488,9 +488,10 @@ class TestConnectX(unittest.TestCase):
 
     #     self.assertTrue(results[0] == results[1])
 
+
 class TestAnalysisFunctions(unittest.TestCase):
 
-    def test_wins_from_next_move(self):
+    def test_check_for_obvious_move(self):
 
         # Get empty board state
         game = Connect4()
@@ -504,12 +505,22 @@ class TestAnalysisFunctions(unittest.TestCase):
         self.assertFalse(
             any(wins_from_next_move(game, role, board_full=board_full).values())
         )
+        moves = check_for_obvious_move(game, role, board_full=board_full)
+        self.assertEqual(
+            moves,
+            (None, [0, 1, 2, 3, 4, 5, 6])
+        )
 
         # First move by 1
         state[0, 3] = 1
         role = 2
         self.assertFalse(
             any(wins_from_next_move(game, role, board_full=board_full).values())
+        )
+        moves = check_for_obvious_move(game, role, board_full=board_full)
+        self.assertEqual(
+            moves,
+            (None, [0, 1, 2, 3, 4, 5, 6])
         )
 
         # Board state
@@ -526,11 +537,30 @@ class TestAnalysisFunctions(unittest.TestCase):
             wins_from_next_move(game, role, board_full=board_full),
             {0: True, 1: False, 2: False, 3: False, 4: False, 6: False}
         )
+        # Player 1 can win
+        moves = check_for_obvious_move(game, role, board_full=board_full)
+        self.assertEqual(moves, (1.0, [0]))
         role = 2
         self.assertEqual(
             wins_from_next_move(game, role, board_full=board_full),
             {0: False, 1: False, 2: False, 3: False, 4: True, 6: False}
         )
+        # Player 2 can win
+        moves = check_for_obvious_move(game, role, board_full=board_full)
+        self.assertEqual(moves, (1.0, [4]))
+
+        state[:] = np.array([
+            [0, 2, 1, 1, 2, 2, 1],
+            [0, 0, 1, 0, 2, 1, 0],
+            [0, 0, 0, 0, 2, 1, 0],
+            [0, 0, 0, 0, 0, 2, 0],
+            [0, 0, 0, 0, 0, 2, 0],
+            [0, 0, 0, 0, 0, 1, 0]
+        ])
+        role = 1
+        # Should block win by player 2
+        moves = check_for_obvious_move(game, role, board_full=board_full)
+        self.assertEqual(moves, (None, [4]))
 
         state[:] = np.array([
             [0, 1, 2, 1, 2, 2, 1],
@@ -545,6 +575,9 @@ class TestAnalysisFunctions(unittest.TestCase):
             wins_from_next_move(game, role, board_full=board_full),
             {0: False, 1: False, 2: False, 3: False, 4: False, 6: False}
         )
+        # Can't win but at least block one of opponent moves
+        moves = check_for_obvious_move(game, role, board_full=board_full)
+        self.assertEqual(moves, (-1.0, [3, 4]))
         role = 2
         self.assertEqual(
             wins_from_next_move(game, role, board_full=board_full),
@@ -564,6 +597,9 @@ class TestAnalysisFunctions(unittest.TestCase):
             wins_from_next_move(game, role, board_full=board_full),
             {0: False, 1: False, 2: False, 3: False, 4: False, 6: False}
         )
+        # This should identify move (1) that will result in win on next turn
+        moves = check_for_obvious_move(game, role, board_full=board_full, depth=2)
+        self.assertEqual(moves, (1.0, [1]))
         role = 2
         self.assertEqual(
             wins_from_next_move(game, role, board_full=board_full),
@@ -583,30 +619,46 @@ class TestAnalysisFunctions(unittest.TestCase):
             wins_from_next_move(game, role, board_full=board_full),
             {0: False, 1: False, 2: False, 3: False, 4: False, 5: False, 6: False}
         )
+        # This should identify a blocking move (1 or 4)
+        moves = check_for_obvious_move(game, role, board_full=board_full, depth=3)
+        self.assertEqual(moves, (None, [1, 4]))
 
-        state[:] = 1
+        # Second-last move of game
+        state[:] = np.array([
+            [1, 1, 2, 2, 1, 1, 1],
+            [2, 1, 2, 1, 1, 2, 1],
+            [2, 2, 2, 1, 1, 2, 2],
+            [1, 2, 1, 1, 2, 2, 2],
+            [2, 1, 1, 2, 1, 1, 1],
+            [1, 2, 0, 0, 1, 1, 2]
+        ], dtype='int8')
+        role = 1
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {2: False, 3: False}
+        )
+        moves = check_for_obvious_move(game, role, board_full=board_full, depth=3)
+        self.assertEqual(moves, (None, [2]))
+
+        # Last move of game (draw)
+        state[-1, 2] = role
+        role = 2
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {3: False}
+        )
+        moves = check_for_obvious_move(game, role, board_full=board_full, depth=3)
+        self.assertEqual(moves, (0, [3]))
+
+        # Game over (full board)
+        state[-1, 3] = role
         role = 1
         self.assertEqual(
             wins_from_next_move(game, role, board_full=board_full),
             {}
         )
-        role = 2
-        self.assertEqual(
-            wins_from_next_move(game, role, board_full=board_full),
-            {}
-        )
-
-        state[:] = 2
-        role = 1
-        self.assertEqual(
-            wins_from_next_move(game, role, board_full=board_full),
-            {}
-        )
-        role = 2
-        self.assertEqual(
-            wins_from_next_move(game, role, board_full=board_full),
-            {}
-        )
+        with self.assertRaises(ValueError) as context:
+            check_for_obvious_move(game, role, board_full=board_full, depth=3)
 
 
 if __name__ == '__main__':

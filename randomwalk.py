@@ -42,9 +42,10 @@ class RandomWalkGame(Environment):
     possible_n_players = [1]
     terminal_states = ['T1', 'T2']
     default_terminal_rewards = {'T1': 0.0, 'T2': 1.0}
+    input_example = 'r'
 
     help_text = {
-        'Move format': "l/r",
+        'Move format': "'l' or 'r'",
         'Move not available': "That action is not available.",
         'Number of players': "This game is for 1 player."
     }

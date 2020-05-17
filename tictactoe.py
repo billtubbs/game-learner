@@ -35,6 +35,7 @@ class TicTacToeGame(Environment):
     possible_n_players = [2]
     marks = ['X', 'O']
     terminal_rewards = {'win': 1.0, 'lose': 0.0, 'draw': 0.5}
+    input_example = (0, 0)
 
     help_text = {
         'Move format': "row, col",

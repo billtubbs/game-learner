@@ -226,6 +226,7 @@ class TestConnectX(unittest.TestCase):
         self.assertEqual(game.shape, (6, 7))
         self.assertEqual(game.possible_n_players, [2])
         self.assertEqual(game.marks, ['X', 'O'])
+        self.assertEqual(game.input_example, 0)
 
         assert_array_equal(game.state, np.zeros((6, 7), dtype='int8'))
         self.assertEqual(game._board_full.shape, (8, 9))

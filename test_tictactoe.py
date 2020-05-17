@@ -35,6 +35,14 @@ class TestTicTacToe(unittest.TestCase):
 
         game = TicTacToeGame()
         self.assertEqual(game.roles, [1, 2])
+        self.assertEqual(game.size, 3)
+        self.assertEqual(game.possible_n_players, [2])
+        self.assertEqual(game.marks, ['X', 'O'])
+        self.assertIsInstance(game.input_example, tuple)
+        self.assertEqual(len(game.input_example), 2)
+        self.assertFalse(game.game_over)
+        self.assertEqual(game.winner, None)
+
         self.assertTrue(
             np.array_equal(game.state, np.zeros((game.size, game.size)))
         )

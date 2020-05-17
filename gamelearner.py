@@ -425,9 +425,15 @@ class HumanPlayer(Player):
             except (SyntaxError, ValueError):
                 print("Move format is %s" % move_format)
                 continue
-            if not isinstance(position, tuple) or len(position) != 2:
-                print("Move format is %s" % move_format)
-                continue
+            if type(game.input_example) is tuple:
+                if not (isinstance(position, tuple) or 
+                        len(position) != len(game.input_example)):
+                    print("Move format is %s" % move_format)
+                    continue
+            else:
+                if not isinstance(position, type(game.input_example)):
+                    print("Move format is %s" % move_format)
+                    continue
             if position in game.available_moves():
                 break
             print(game.help_text['Move not available'])

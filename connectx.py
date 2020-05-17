@@ -405,6 +405,21 @@ class Connect4(Environment):
         return np.array(chars, dtype='a')[state].tostring()
 
 
+def wins_from_next_move(game, role, board_full=None):
+    if board_full is None:
+        board_full = game._board_full
+        state = game.state
+    else:
+        state = game.state_from_board_full(board_full)        
+    wins = {}
+    fill_levels = game._get_fill_levels(state)
+    for col in game.available_moves(state):
+        pos_fb = (fill_levels[col]+1, col+1)
+        win = game._check_game_state_from_position(pos_fb, role, board_full=board_full)
+        wins[col] = win
+    return wins
+
+
 def winning_positions(game, role, available_positions=None, state=None):
     """Returns list of positions (row, col) that would result
     in player role winning if they took that position.

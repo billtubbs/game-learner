@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from connectx import Connect4
+from connectx import Connect4, wins_from_next_move
 from gamelearner import RandomPlayer, GameController
 #from gamelearner import train_computer_players
 
@@ -487,6 +487,102 @@ class TestConnectX(unittest.TestCase):
     #                     game_stats.items()})
 
     #     self.assertTrue(results[0] == results[1])
+
+class TestAnalysisFunctions(unittest.TestCase):
+
+    def test_wins_from_next_move(self):
+
+        # Get empty board state
+        game = Connect4()
+        board_full, state = game._empty_board_state()
+
+        role = 1
+        self.assertEqual(
+            list(wins_from_next_move(game, role, board_full=board_full).keys()),
+            list(range(7))
+        )
+        self.assertFalse(
+            any(wins_from_next_move(game, role, board_full=board_full).values())
+        )
+
+        # First move by 1
+        state[0, 3] = 1
+        role = 2
+        self.assertFalse(
+            any(wins_from_next_move(game, role, board_full=board_full).values())
+        )
+
+        # Board state
+        state[:] = np.array([
+            [0, 1, 1, 1, 2, 2, 1],
+            [0, 0, 1, 0, 2, 1, 0],
+            [0, 0, 0, 0, 2, 2, 0],
+            [0, 0, 0, 0, 0, 2, 0],
+            [0, 0, 0, 0, 0, 2, 0],
+            [0, 0, 0, 0, 0, 1, 0]
+        ])
+        role = 1
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {0: True, 1: False, 2: False, 3: False, 4: False, 6: False}
+        )
+        role = 2
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {0: False, 1: False, 2: False, 3: False, 4: True, 6: False}
+        )
+
+        state[:] = np.array([
+            [0, 1, 2, 1, 2, 2, 1],
+            [0, 0, 1, 0, 2, 1, 0],
+            [0, 0, 0, 0, 2, 1, 0],
+            [0, 0, 0, 0, 0, 2, 0],
+            [0, 0, 0, 0, 0, 2, 0],
+            [0, 0, 0, 0, 0, 1, 0]
+        ])
+        role = 1
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {0: False, 1: False, 2: False, 3: False, 4: False, 6: False}
+        )
+        role = 2
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {0: False, 1: False, 2: False, 3: True, 4: True, 6: False}
+        )
+
+        state[:] = np.array([
+            [0, 0, 1, 1, 2, 2, 1],
+            [0, 0, 1, 2, 2, 1, 0],
+            [0, 0, 0, 0, 2, 2, 0],
+            [0, 0, 0, 0, 1, 2, 0],
+            [0, 0, 0, 0, 0, 2, 0],
+            [0, 0, 0, 0, 0, 1, 0]
+        ])
+        role = 1
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {0: False, 1: False, 2: False, 3: False, 4: False, 6: False}
+        )
+        role = 2
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {0: False, 1: False, 2: False, 3: False, 4: False, 6: False}
+        )
+
+        state[:] = np.array([
+            [0, 0, 1, 1, 0, 0, 0],
+            [0, 0, 0, 2, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0]
+        ])
+        role = 2
+        self.assertEqual(
+            wins_from_next_move(game, role, board_full=board_full),
+            {0: False, 1: False, 2: False, 3: False, 4: False, 5: False, 6: False}
+        )
 
 
 if __name__ == '__main__':

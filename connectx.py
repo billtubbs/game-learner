@@ -367,44 +367,6 @@ class Connect4(Environment):
     def generate_state_key(self):
         raise NotImplementedError()
 
-    def generate_state_key(self, state, role):
-        """Converts a game state (or afterstate) into a string of
-        bytes containing characters that represent the following:
-         '-': Empty board position
-         'S': Position occupied by self
-         'O': Position occupied by opponent
-
-        This is used by TDLearner to create unique hashable keys
-        for storing action-values in a dictionary.
-
-        Example:
-        > game.state
-        array([[1, 0, 0],
-               [2, 0, 0],
-               [0, 0, 1]], dtype=int8)
-        > game.generate_state_key(game.state, 1)
-        b'S--O----S'
-
-        Args:
-            state (np.ndarray): Game state array.
-            role (int): Player role.
-
-        Returns:
-            key (string): string of bytes representing game state.
-        """
-
-        # TODO: Instead of a char array should this simply be an integer?
-        # (Would probably conserve memory).  Could provide hash function
-        # so states are still decodable.
-        if role == self.roles[0]:
-            chars = ['-', 'S', 'O']
-        elif role == self.roles[1]:
-            chars = ['-', 'O', 'S']
-        else:
-            raise ValueError("Role does not exist in this game.")
-
-        return np.array(chars, dtype='a')[state].tostring()
-
 
 def wins_from_next_move(game, role, board_full=None, moves=None):
     if board_full is None:
@@ -423,7 +385,8 @@ def wins_from_next_move(game, role, board_full=None, moves=None):
     return wins
 
 
-def check_for_obvious_move(game, role, board_full=None, 
+def check_for_obvious_move(game, role, board_full=None, state=None, 
+                           fill_levels=None,
                            terminal_values={'win': 1, 'loss': -1, 'draw':0},
                            depth=1):
     """Analyses the current board state (or board_full if
@@ -441,18 +404,25 @@ def check_for_obvious_move(game, role, board_full=None,
         fill_levels = game._fill_levels
     else:
         state = game.state_from_board_full(board_full)
+    if fill_levels is None:
         fill_levels = game._get_fill_levels(state)
+
+    # Check if board already full (draw)
+    # (This function should not be called in this case)
+    if fill_levels.sum() == game.shape[0]*game.shape[1]:
+        raise ValueError("No available moves")
+    
     opponent = role ^ 3
     win_value, loss_value = (terminal_values['win'], 
-                             terminal_values['loss'])
-
+                                terminal_values['loss'])
+    
     # TODO: This should not be in this func
     # 0. Check if early move of game
     #if n_moves == 0:
     #    return None, [3]
     #elif (n_moves == 1) and (state[0,3] == opponent):
     #    return None, [3]
-    
+
     # 1. Check for a win by role on next move
     possible_moves = wins_from_next_move(game, role, board_full=board_full)
     n_wins = sum(possible_moves.values())
@@ -462,12 +432,10 @@ def check_for_obvious_move(game, role, board_full=None,
 
     if len(possible_moves) == 1:
         # 2. Check if draw (last move but no win)
-        if fill_levels[list(possible_moves.keys())[0]] == game.shape[0] - 1:
+        if fill_levels.sum() == game.shape[0]*game.shape[1] - 1:
             return terminal_values['draw'], list(possible_moves.keys())
-        #TODO: Could continue deeper search if only one move possible
-    elif len(possible_moves) == 0:
-        raise ValueError("No available moves")
-
+    
+    #TODO: Could continue deeper search if only one move possible
     if depth > 0:
         # 3. Check what opponent could do next for each possible move
         bf2 = board_full.copy()  # TODO: Could remove if sure it is restored
@@ -480,7 +448,10 @@ def check_for_obvious_move(game, role, board_full=None,
         for col in possible_moves:
             assert state[fill_levels[col], col] == 0  # TODO: delete later
             state[fill_levels[col], col] = role  # Next state after move
+            fill_levels[col] += 1
             value, moves = check_for_obvious_move(game, opponent, board_full=bf2,
+                                                  state=state, 
+                                                  fill_levels=fill_levels,
                                                   depth=depth-1)
             opp_move_values[col] = value
             if value == win_value:
@@ -489,7 +460,9 @@ def check_for_obvious_move(game, role, board_full=None,
                 opp_losses[col] = len(moves)
             else:
                 other_moves.append(col)
-            state[fill_levels[col], col] = 0  # Reverse move
+            # Reverse move
+            fill_levels[col] -= 1
+            state[fill_levels[col], col] = 0
 
         # 4. Take any move where opponent will definitely lose
         if len(opp_losses) > 0:

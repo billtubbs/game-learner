@@ -7,8 +7,9 @@ import unittest
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from gamelearner import RandomPlayer, GameController
-from connectx import Connect4, wins_from_next_move, check_for_obvious_move
+from gamelearner import GameController, RandomPlayer
+from connectx import Connect4, Connect4BasicPlayer, \
+                     wins_from_next_move, check_for_obvious_move
 #from gamelearner import train_computer_players
 
 
@@ -412,17 +413,6 @@ class TestConnectX(unittest.TestCase):
         self.assertTrue(game.game_over)
         self.assertEqual(game.winner, None)
 
-    def test_with_GameController(self):
-
-        game = Connect4()
-        player1 = RandomPlayer('R1')
-        player2 = RandomPlayer('R2')
-
-        players = [player1, player2]
-        ctrl = GameController(game, players)
-        ctrl.play(show=False)
-        self.assertTrue(game.game_over)
-
     # def test_generate_state_key(self):
     #     """Test generate_state_key method of TicTacToeGame.
     #     """
@@ -438,29 +428,37 @@ class TestConnectX(unittest.TestCase):
     #         game.generate_state_key(game.state, 2), b'O--S----O'
     #     )
 
-    # def test_with_players(self):
+    def test_with_players(self):
 
-    #     game = TicTacToeGame()
-    #     players = [RandomPlayer(seed=1), RandomPlayer(seed=1)]
-    #     ctrl = GameController(game, players)
-    #     ctrl.play(show=False)
-    #     final_state = np.array([
-    #         [1, 2, 1],
-    #         [2, 1, 1],
-    #         [1, 2, 2]
-    #     ])
-    #     self.assertTrue(np.array_equal(ctrl.game.state, final_state))
-    #     self.assertEqual(game.game_over, 1)
-    #     self.assertEqual(game.winner, 1)
+        game = Connect4()
+        player1 = RandomPlayer(seed=1)
+        player2 = RandomPlayer(seed=1)
+        players = [player1, player2]
+        ctrl = GameController(game, players)
+        ctrl.play(show=False)
+        self.assertTrue(game.game_over)
+        final_state = np.array(
+            [[1, 1, 1, 1, 1, 0, 1],
+            [2, 2, 2, 0, 2, 0, 2],
+            [1, 0, 0, 0, 0, 0, 1],
+            [2, 0, 0, 0, 0, 0, 2],
+            [0, 0, 0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 0, 0, 2]
+        ], dtype='int8')
+        assert_array_equal(ctrl.game.state, final_state)
+        self.assertEqual(game.winner, 1)
+        
 
-    # def test_expert_player(self):
+    def test_Connect4BasicPlayer(self):
 
-    #     results = []
-    #     game = TicTacToeGame()
-    #     expert_player1 = TicTacToeExpert("EXP1", seed=1)
-    #     expert_player2 = TicTacToeExpert("EXP2", seed=1)
-    #     random_player = RandomPlayer(seed=1)
-    #     players = [expert_player1, expert_player2, random_player]
+        results = []
+        game = Connect4()
+        basic_player1 = Connect4BasicPlayer("P1", seed=1)
+        basic_player2 = Connect4BasicPlayer("P2", seed=1)
+        random_player = RandomPlayer(seed=1)
+        players = [basic_player1, basic_player2, random_player]
+        # TODO: Finish testing
+
     #     game_stats = train_computer_players(game, players, iterations=100,
     #                                         seed=1, show=False)
     #     self.assertTrue(game_stats[expert_player1]['lost'] == 0)

@@ -10,7 +10,6 @@ algorithm.
 
 import numpy as np
 import itertools
-import random
 from gamelearner import *
 
 
@@ -36,6 +35,7 @@ class TicTacToeGame(Environment):
     possible_n_players = [2]
     marks = ['X', 'O']
     terminal_rewards = {'win': 1.0, 'lose': 0.0, 'draw': 0.5}
+    input_example = (0, 0)
 
     help_text = {
         'Move format': "row, col",
@@ -77,13 +77,13 @@ class TicTacToeGame(Environment):
                 the board position (row, col).
         """
 
-        super().__init__(moves)
+        start_state = np.zeros(self.shape, dtype='b')
         self.n_players = 2
-        self.winner = None
+        # self.winner = None  TODO: Currently this is done in parent class
         self.player_iterator = itertools.cycle(self.roles)
         self.turn = next(self.player_iterator)
-        self.start_state = np.zeros(self.shape, dtype='b')
-        self.state = self.start_state
+        self.start_state = start_state
+        super().__init__(start_state, moves=moves)
 
     def reset(self):
         """Set the state of the game back to the beginning
@@ -128,6 +128,8 @@ class TicTacToeGame(Environment):
             move (tuple): Tuple of length 2 containing the player role
                 and the move (role, position). Position is also a tuple
                 (row, col).
+            role_check (bool): If True, checks to make sure it is role's
+                turn.
 
         Returns:
             next_state (np.ndarray): copy of state after move made.
@@ -480,7 +482,7 @@ class TicTacToeExpert(Player):
             move = (role, self.rng.choice(available_moves))
 
         if show:
-            print("%s's turn (%s): %s" % (self.name, move_format, str(move)))
+            print("%s's turn (%s): %s" % (self.name, move_format, str(move[1])))
 
         return move
 
@@ -512,9 +514,10 @@ def test_player(player, game=TicTacToeGame, seed=1):
     random_player = RandomPlayer(seed=seed)
     expert_player = TicTacToeExpert(seed=seed)
 
-    # Make a shuffled list of the opponents
+    # Make a shuffled list of the order of play
     opponents = [random_player]*50 + [expert_player]*50
-    random.Random(seed).shuffle(opponents)
+    rng = random.Random(seed)
+    rng.shuffle(opponents)
 
     game = game()
     player.updates_on, saved_mode = False, player.updates_on
@@ -599,8 +602,8 @@ def tictactoe_game(players, move_first=0, show=True):
     ctrl.play(show=show)
 
 
-def tictactoe_with_2_humans(game, names=("Player 1", "Player 2"), move_first=0,
-                       n=1):
+def tictactoe_with_2_humans(names=("Player 1", "Player 2"), move_first=0,
+                            n=1):
     """Demo of TicTacToeGame with two new human players.
 
     Args:

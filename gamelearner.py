@@ -5,18 +5,24 @@ Barto's book Reinforcement Learning: An Introduction.
 """
 
 # TODO list:
-# - game.next_state is basically the environment dynamics
-#   should re-design so you can use it independent of self.
-#   same for available_moves.  Should they be class methods?
-# - for one-player games it doesn't need to use a game's
-#    turn and player iterator attributes
-# - Separate value estimation (prediction) from behaviour
+# - Separate value estimation (prediction) from behaviour:
+#     Need to restructure players to separate policies from
+#     agent class and potentially have two policies.
+# - Add a role attribute to game.available_moves
+# - Merge terminal_update() with update()
+# - Add timestep index to TDLearner's saved states and do checks
+# - Replace use of 'position' with 'action'
+# - game.next_state is basically the environment dynamics. Should
+#     re-design so you can use it independent of self.
+# - TDLearner uses after-states but should be able to use state-action
+#     pairs as well.
 # - Add other methods - n-step TD, monte-carlo, DP
 # - Add other methods - Sarsa
 # - create a game.make_moves method
 # - Are there proven ways to reduce learning_rate?
 # - Allow player to be initialised from pickle file
 # - Consider using property decorators
+# - Consider renaming 'position' as 'action' for generality
 
 from abc import ABC, abstractmethod
 import numpy as np
@@ -89,25 +95,17 @@ class Player(ABC):
         game.make_move(move)
 
     def update(self, game, reward, show=False):
-        """Override this method if player needs rewards to learn
-        how to play.
+        """Override this method if player uses rewards to learn
+        how to play.  Note, if the game has ended (game.gameover
+        == True) then reward must be a terminal reward which may
+        come in addition to a regular reward for the previous
+        move made.
 
         Args:
             game (Game): Game that player is playing.
             reward (float): Reward value based on the last move
                 made by player.
-        """
-
-        pass
-
-    def update_terminal(self, game, reward, show=False):
-        """Override this method if player needs rewards to learn
-        how to play.
-
-        Args:
-            game (Game): Game that player is playing.
-            reward (float): Terminal reward value based on the
-                last move made by the winner.
+            show (bool): Print a message (optional).
         """
 
         pass
@@ -171,14 +169,18 @@ class Environment(ABC):
     Class attributes:
         Environment.name (str): The environment's name (e.g. 'Tic Tac Toe').
         Environment.roles (list): Possible player roles (e.g. [1, 2]).
+        Environment.possible_n_players (list) : List of integers specifying
+            possible number of players.  E.g. for Tic-Tac-Toe,
+            possible_n_players = [2].
         Environment.help_text (dict): Help messages for human players.
     """
 
     name = 'Abstract environment'
     roles = None
+    possible_n_players = None
     help_text = None
 
-    def __init__(self, moves=None):
+    def __init__(self, start_state, moves=None):
         """Initialize the environment.
 
         Args:
@@ -188,15 +190,17 @@ class Environment(ABC):
                 the action taken.
         """
 
+        self.start_state = start_state
+        self.state = start_state
         self.start_time = None
         self.end_time = None
-        self.moves = []
         self.game_over = False
+        self.winner = None  # TODO: Decide if this needs to be in abstract class
+        self.moves = []
         if moves is not None:
             for move in moves:
                 self.make_move(move)
             self.check_if_game_over()
-        self.state = None
 
     def start(self):
         """Records start time (self.start_time)."""
@@ -213,10 +217,10 @@ class Environment(ABC):
         (no moves made).
         """
 
-        self.moves = []
-        self.game_over = False
         self.start_time = None
         self.end_time = None
+        self.game_over = False
+        self.moves = []
 
     @abstractmethod
     def show_state(self):
@@ -232,6 +236,8 @@ class Environment(ABC):
             state (...): Environment state.  If not provided,
                 the current environment state will be used.
         """
+
+        # TODO: In general, this should have a role attribute
 
         pass
 
@@ -323,7 +329,7 @@ class Environment(ABC):
         pass
 
     @abstractmethod
-    def check_game_state(self, state=None, role=None, calc=False):
+    def check_game_state(self, state=None, role=None):
         """Check the environment state to see if episode
         will terminate now.
 
@@ -333,7 +339,6 @@ class Environment(ABC):
                 actual game state (self.state).
             role (int): If specified, only check for a win by this
                 game role.
-            calc (bool):
 
         returns:
             game_over, winner (bool, bool): If there is a winner,
@@ -361,32 +366,19 @@ class Environment(ABC):
 
         self.game_over, self.winner = self.check_game_state(role=role)
 
-
     @abstractmethod
     def generate_state_key(self, state, role):
-        """Converts a game state (or afterstate) into a string of
-        bytes containing characters that represent the following:
-         '-': Empty board position
-         'S': Position occupied by self
-         'O': Position occupied by opponent
+        """Converts a game state (or afterstate) into a hashable key
+        that can be used by tabular value functions for storing and
+        retrieving state values.
 
-        This is used by TDLearner to create unique hashable keys
-        for storing action-values in a dictionary.
+        Implement this method for each environment.
 
-        Example:
-        > game.state
-        array([[1, 0, 0],
-               [2, 0, 0],
-               [0, 0, 1]], dtype=int8)
-        > game.generate_state_key(game.state, 1)
-        b'S--O----S'
-
-        Args:
-            state (np.ndarray): Game state array.
-            role (int): Player role.
+        Could be a string of bytes or an integer for example (as long
+        as there is a unique correspondence between states and keys).
 
         Returns:
-            key (string): string of bytes representing game state.
+            key (string or int): Unique key representing a game state.
         """
 
         pass
@@ -433,9 +425,15 @@ class HumanPlayer(Player):
             except (SyntaxError, ValueError):
                 print("Move format is %s" % move_format)
                 continue
-            if not isinstance(position, tuple) or len(position) != 2:
-                print("Move format is %s" % move_format)
-                continue
+            if type(game.input_example) is tuple:
+                if not (isinstance(position, tuple) or 
+                        len(position) != len(game.input_example)):
+                    print("Move format is %s" % move_format)
+                    continue
+            else:
+                if not isinstance(position, type(game.input_example)):
+                    print("Move format is %s" % move_format)
+                    continue
             if position in game.available_moves():
                 break
             print(game.help_text['Move not available'])
@@ -458,7 +456,8 @@ class HumanPlayer(Player):
 class TDLearner(Player):
     def __init__(self, name="TD", learning_rate=0.1, gamma=1.0,
                  off_policy_rate=0.1, initial_value=0.5,
-                 value_function=None, use_afterstates=True):
+                 value_function=None, use_afterstates=True,
+                 seed=None):
         """Tic-Tac-Toe game player that uses temporal difference (TD)
         learning algorithm.
 
@@ -472,6 +471,7 @@ class TDLearner(Player):
                 (unvisited) state.
             value_function (dict): Optionally provide a pre-trained
                 value function.
+            seed (int): Random number generator seed value.
         """
 
         super().__init__(name)
@@ -483,24 +483,27 @@ class TDLearner(Player):
         if value_function is None:
             value_function = {}
         self.value_function = value_function
-        self.saved_game_states = {}  # TODO: Should game save these?
+        self.saved_game_states = {}
         self.on_policy = None
+
+        # Dedicated random number generator for sole use
+        self.seed = seed
+        self.rng = random.Random(seed)
 
     def get_value(self, state_key):
         """Returns a value from TDLearner's value_function for the
         game state represented by state_key. If there is no item for
-        that move, returns the initial_value instead.
+        that state, returns the initial_value instead.
         """
 
         return self.value_function.get(state_key, self.initial_value)
 
     def save_state(self, game, state_key):
-        """Adds action_key to a list of keys stored in dictionary
+        """Adds state_key to a list of keys stored in dictionary
         self.saved_game_states for each game being played.
         """
 
-        self.saved_game_states[game] = \
-            self.saved_game_states.get(game, []) + [state_key]
+        self.saved_game_states.get(game, []).append(state_key)
 
     def decide_next_move(self, game, role, show=False):
 
@@ -508,10 +511,10 @@ class TDLearner(Player):
         if len(available_positions) == 0:
             raise ValueError("There are no possible moves.")
 
-        elif random.random() < self.off_policy_rate:
+        elif self.rng.random() < self.off_policy_rate:
             # Random off-policy move
             self.on_policy = False
-            position = random.choice(available_positions)
+            position = self.rng.choice(available_positions)
             next_state = game.next_state(game.state, (role, position))
             next_state_key = game.generate_state_key(next_state, role)
 
@@ -529,7 +532,7 @@ class TDLearner(Player):
 
             max_value = max(options)[0]
             best_options = [m for m in options if m[0] == max_value]
-            _, position, next_state_key = random.choice(best_options)
+            _, position, next_state_key = self.rng.choice(best_options)
 
         # Save chosen state for learning updates later
         self.save_state(game, next_state_key)
@@ -554,8 +557,10 @@ class TDLearner(Player):
         return states
 
     def update(self, game, reward, show=False):
-        """Update TDLearner's value function based on reward from
-        game.
+        """Update TDLearner's value function based on current reward
+        from game.  This gets called by GameController during a game
+        whenever rewards are distributed and the player has received
+        one.
 
         Args:
             game (Game): Game that player is playing.
@@ -565,45 +570,32 @@ class TDLearner(Player):
 
         if self.updates_on and self.on_policy is True:
 
-            # Retrieve previous actions in the game if
-            # there were any
+            # Retrieve previous game-states if there were any
             states = self.get_saved_game_states(game)
 
-            # Need at least 2 previous actions for a value update
-            if len(states) > 1:
+            if not game.game_over:
 
-                # TD value function update
-                self.value_function[states[-2]] = \
-                    self.get_value(states[-2]) + self.learning_rate*(
-                        reward + self.gamma*self.get_value(states[-1]) -
-                        self.get_value(states[-2])
-                    )
+                # Need at least 2 previous actions for a value update
+                if len(states) > 1:
 
-        if show:
-            print("%s got %s reward." % (self.name, reward))
+                    # TD value function update
+                    self.value_function[states[-2]] = \
+                        self.get_value(states[-2]) + self.learning_rate*(
+                            reward + self.gamma*self.get_value(states[-1]) -
+                            self.get_value(states[-2])
+                        )
+            else:
+                # Reward must be a terminal state reward
+                # Update previous state-value if there was one
+                if states:
+                    last_state = states[-1]
 
-    def update_terminal(self, game, reward, show=False):
-        """Update TDLearner's value function based on reward from
-        game after terminal state reached.
-
-        Args:
-            game (Game): Game that player is playing.
-            reward (float): Reward value.
-            show (bool): Print a message if True.
-        """
-
-        if self.updates_on and self.on_policy is True:
-
-            # Retrieve previous actions in the game if
-            # there were any
-            last_state = self.get_saved_game_states(game)[-1]
-
-            # If game terminated then update last state value
-            # as there are no future state-values
-            self.value_function[last_state] = \
-                self.get_value(last_state) + self.learning_rate*(
-                    reward - self.get_value(last_state)
-                )
+                    # If game terminated then update last state value
+                    # as there are no future state-values
+                    self.value_function[last_state] = \
+                        self.get_value(last_state) + self.learning_rate*(
+                            reward - self.get_value(last_state)
+                        )
 
         if show:
             print("%s got %s reward." % (self.name, reward))
@@ -622,11 +614,19 @@ class TDLearner(Player):
         # Delete list of previous game states
         del self.saved_game_states[game]
 
-    def copy(self, name):
+    def copy(self, name=None):
 
-        return TDLearner(name=name, learning_rate=self.learning_rate,
+        if name is None:
+            name = self.name
+
+        return TDLearner(name=name,
+                         learning_rate=self.learning_rate,
+                         gamma=self.gamma,
                          off_policy_rate=self.off_policy_rate,
-                         value_function=self.value_function)
+                         initial_value=self.initial_value,
+                         value_function=self.value_function.copy(),
+                         use_afterstates=self.use_afterstates,
+                         seed=self.seed)
 
 
 class RandomPlayer(Player):
@@ -635,22 +635,24 @@ class RandomPlayer(Player):
 
         Args:
             name (str): Arbitrary name to identify the player
-            seed (int): Random number generator seed.
+            seed (int): Random number generator seed value.
         """
 
+        # TODO: Need to restructure players to separate policy from agent
         super().__init__(name)
 
-        # Independent random number generator for sole use
-        # by this instance
+        # Dedicated random number generator
+        self.seed = seed
         self.rng = random.Random(seed)
 
     def decide_next_move(self, game, role, show=False):
         available_moves = game.available_moves()
-        move = (role, self.rng.choice(available_moves))
+        position = self.rng.choice(available_moves)
+        move = (role, position)
 
         if show:
             move_format = game.help_text['Move format']
-            print("%s's turn (%s): %s" % (self.name, move_format, str(move)))
+            print("%s's turn (%s): %s" % (self.name, move_format, str(position)))
 
         return move
 
@@ -759,8 +761,8 @@ class GameController:
             # Get and send terminal rewards to players
             terminal_rewards = self.game.get_terminal_rewards()
             for role, reward in terminal_rewards.items():
-                self.players_by_role[role].update_terminal(
-                    self.game, reward, show=show)
+                self.players_by_role[role].update(self.game, reward,
+                                                  show=show)
 
             # Call gameover method of each player
             for player in self.players:
@@ -793,19 +795,13 @@ class GameController:
 
     def __repr__(self):
 
-        return "GameController(%s, %s)" % (
-            self.game.__repr__(),
-            self.players.__repr__()
-        )
-
-    def __repr__(self):
-
         params = [self.game.__repr__(), self.players.__repr__()]
 
         return f"{self.__class__.__name__}({', '.join(params)})"
 
 
-def train_computer_players(game, players, iterations=1000, show=True):
+def train_computer_players(game, players, iterations=1000, seed=None,
+                           show=True):
     """Play repeated games with n computer players then play
     against one of them.
 
@@ -813,7 +809,12 @@ def train_computer_players(game, players, iterations=1000, show=True):
         game (Environment): Game environment to play.
         players (list): List of at least 2 Player instances.
         iterations (int): Number of iterations of training.
+        seed (int): Random number generator seed value.
         show (bool): Print progress messages and results if True.
+
+    returns:
+        stats (dict): Dictionary containing the game results for
+            each player.
     """
 
     n_players = game.possible_n_players[0]
@@ -821,11 +822,14 @@ def train_computer_players(game, players, iterations=1000, show=True):
 
     stats = {p: {'won': 0, 'lost': 0, 'played': 0} for p in players}
 
+    # Dedicated random-number generator
+    rng = random.Random(seed)
+
     if show:
         print("\nTraining %d computer players..." % len(players))
     for i in range(iterations):
         game.reset()
-        selected_players = random.sample(players, n_players)
+        selected_players = rng.sample(players, n_players)
         ctrl = GameController(game, selected_players)
         ctrl.play(show=False)
         for player in selected_players:
@@ -846,6 +850,8 @@ def train_computer_players(game, players, iterations=1000, show=True):
                                  stats[player]['played'])
             print("%s: won %d, lost %d, drew %d" % (player.name, won, lost,
                                                     played - won - lost))
+
+    return stats
 
 
 def play_looped_games(game, players, move_first=0, n=None,

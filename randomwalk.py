@@ -1,16 +1,38 @@
 #!/usr/bin/env python
 """Demonstration of TD reinforcement learning algorithms
-described in Chapter 6 of the 2nd edition of Sutton and
-Barto's book Reinforcement Learning: An Introduction.
+described in Chapters 6 and 7 of the 2nd edition of Sutton
+and Barto's book Reinforcement Learning: An Introduction.
 
-Random Walk environment is used to test the impact of
-learning rates and n for n-step TD learning.
+Random Walk environment is used to test n-step TD and
+TD-Lambda algorithms.
 """
 
 import string
+import numpy as np
+from gamelearner import Environment
 
-from gamelearner import Environment, GameController, Player, HumanPlayer, \
-                        RandomPlayer, TDLearner
+
+def calculate_true_values(game):
+    """Returns a list of the true values of states in a
+    RandomWalk game.  Note: these true values only apply
+    when the agent acts randomly and when the discount
+    factor is 1.0.
+    """
+
+    xp = [0, game.size + 1]
+    fp = [-1.0, 1.0]
+
+    true_values = np.interp(np.arange(game.size + 2), xp, fp)[1:-1]
+
+    return true_values
+
+
+def rms_error(values, true_values):
+    """Root-mean-squared error of values compared to true values.
+    """
+
+    return np.sqrt(np.sum((np.array(values) -
+                           np.array(true_values))**2)/len(values))
 
 
 class RandomWalkGame(Environment):
@@ -19,25 +41,32 @@ class RandomWalkGame(Environment):
     roles = [1]
     possible_n_players = [1]
     terminal_states = ['T1', 'T2']
-    terminal_rewards = {'T1': 0.0, 'T2': 1.0}
+    default_terminal_rewards = {'T1': 0.0, 'T2': 1.0}
+    input_example = 'r'
 
     help_text = {
-        'Move format': "l/r",
+        'Move format': "'l' or 'r'",
         'Move not available': "That action is not available.",
         'Number of players': "This game is for 1 player."
     }
 
-    def __init__(self, moves=None, size=5):
+    def __init__(self, moves=None, size=5,
+                 terminal_rewards=None):
 
         super().__init__(moves)
 
         self.size = size
         assert 1 < size <= 26  # States are labelled A-Z
 
+        if terminal_rewards:
+            self.terminal_rewards = terminal_rewards
+        else:
+            self.terminal_rewards = self.default_terminal_rewards
+
         # Create states
-        self.states = [self.terminal_states[0]] + \
-                      list(string.ascii_uppercase[:size]) + \
-                      [self.terminal_states[1]]
+        self.states = [self.terminal_states[0]] \
+            + list(string.ascii_uppercase[:size]) \
+            + [self.terminal_states[1]]
 
         assert all([s in self.states for s in self.terminal_states])
         assert all([s in self.terminal_rewards for s in self.terminal_states])
@@ -63,9 +92,15 @@ class RandomWalkGame(Environment):
         self.state = self.start_state
         self.winner = None
 
-    def show_state(self):
+    def show_state(self, simple=False):
 
-        print(self.state)
+        if simple:
+            print(self.state)
+        else:
+            # Displays the full random walk
+            states_to_show = [self.state] + self.terminal_states
+            print(' '.join((s if s in states_to_show else '_')
+                           for s in self.states))
 
     def available_moves(self, state=None):
 
@@ -137,4 +172,4 @@ class RandomWalkGame(Environment):
 
     def generate_state_key(self, state, role):
 
-        return self.state
+        return state

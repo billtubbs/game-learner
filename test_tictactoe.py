@@ -6,7 +6,10 @@ everything is working.
 import unittest
 import numpy as np
 
-from tictactoe import TicTacToeGame, GameController, RandomPlayer
+from tictactoe import TicTacToeGame, GameController, RandomPlayer, \
+                      TicTacToeExpert
+from gamelearner import train_computer_players
+
 
 class TestTicTacToe(unittest.TestCase):
 
@@ -32,6 +35,14 @@ class TestTicTacToe(unittest.TestCase):
 
         game = TicTacToeGame()
         self.assertEqual(game.roles, [1, 2])
+        self.assertEqual(game.size, 3)
+        self.assertEqual(game.possible_n_players, [2])
+        self.assertEqual(game.marks, ['X', 'O'])
+        self.assertIsInstance(game.input_example, tuple)
+        self.assertEqual(len(game.input_example), 2)
+        self.assertFalse(game.game_over)
+        self.assertEqual(game.winner, None)
+
         self.assertTrue(
             np.array_equal(game.state, np.zeros((game.size, game.size)))
         )
@@ -57,7 +68,6 @@ class TestTicTacToe(unittest.TestCase):
             np.array_equal(game.state, state)
         )
         self.assertFalse(game.game_over)
-
 
         self.assertEqual(
             game.moves, [(1, (0, 2)), (2, (0, 1)),
@@ -105,6 +115,22 @@ class TestTicTacToe(unittest.TestCase):
                       2: game.terminal_rewards['draw']}
         )
 
+    def test_initialize_game(self):
+        """Test use of moves argument when initializing a
+        new game.
+        """
+
+        moves = [(1, (0, 2)), (2, (0, 1)), (1, (1, 1)), (2, (2, 2))]
+        game = TicTacToeGame(moves=moves)
+        state = np.array([
+            [0, 2, 1],
+            [0, 1, 0],
+            [0, 0, 2]
+        ])
+        self.assertTrue(
+            np.array_equal(game.state, state)
+        )
+
     def test_generate_state_key(self):
         """Test generate_state_key method of TicTacToeGame.
         """
@@ -134,6 +160,43 @@ class TestTicTacToe(unittest.TestCase):
         self.assertTrue(np.array_equal(ctrl.game.state, final_state))
         self.assertEqual(game.game_over, 1)
         self.assertEqual(game.winner, 1)
+
+    def test_expert_player(self):
+
+        results = []
+        game = TicTacToeGame()
+        expert_player1 = TicTacToeExpert("EXP1", seed=1)
+        expert_player2 = TicTacToeExpert("EXP2", seed=1)
+        random_player = RandomPlayer(seed=1)
+        players = [expert_player1, expert_player2, random_player]
+        game_stats = train_computer_players(game, players, iterations=100,
+                                            seed=1, show=False)
+        self.assertTrue(game_stats[expert_player1]['lost'] == 0)
+        self.assertTrue(game_stats[expert_player2]['lost'] == 0)
+        self.assertTrue(game_stats[random_player]['won'] == 0)
+
+        # Save results
+        results.append({player.name: stat for player, stat in
+                        game_stats.items()})
+
+        # Check repeatability with random seed set
+        game.reset()
+        expert_player1 = TicTacToeExpert("EXP1", seed=1)
+        expert_player2 = TicTacToeExpert("EXP2", seed=1)
+        random_player = RandomPlayer(seed=1)
+        players = [expert_player1, expert_player2, random_player]
+        game_stats = train_computer_players(game, players, iterations=100,
+                                            seed=1, show=False)
+        self.assertTrue(game_stats[expert_player1]['lost'] == 0)
+        self.assertTrue(game_stats[expert_player2]['lost'] == 0)
+        self.assertTrue(game_stats[random_player]['won'] == 0)
+
+        # Save results
+        results.append({player.name: stat for player, stat in
+                        game_stats.items()})
+
+        self.assertTrue(results[0] == results[1])
+
 
 if __name__ == '__main__':
     unittest.main()

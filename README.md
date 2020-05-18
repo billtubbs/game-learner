@@ -8,10 +8,6 @@ It includes a temporal-difference (TD) learning algorithm that learns to play Ti
 as described in Chapter 1 of the [2nd edition](http://www.incompleteideas.net/book/the-book-2nd.html) of Sutton 
 and Barto's book *Reinforcement Learning: An Introduction*.
 
-The TD learning algorithm uses a state value function which is updated each time-step as follows:
-
-V(s) ← V(s) + α[reward + γV(s′) − V(s)]
-
 The file [`gamelearner.py`](gamelearner.py) contains three main classes:
 
 - `Player` - abstract parent class for all types of players (or 'agents')
@@ -26,11 +22,24 @@ The file also contains three common player-types:
 - `HumanPlayer` - an interface to allow humans to play a game
 - `TDLearner` - a simple TD learning algorithm that learns to play from experience
 
+The following games/environments are implemented:
+- [`tictactoe.py`](tictactoe.py) - Tic Tac Toe game (noughts and crosses)
+- [`randomwalk.py`](randomwalk.py) - Implementation of the simple random walk environment from Sutton and Barto's book
+- [`connectx.py`](connectx.py) - Implementation of the Connect4 game environment
+
+The following reinforcement learning algorithms are implemented:
+- `TDLearner` - Implementation of the one-step temporal difference algorithm described by Sutton and Barto.
+
+The TD(0) learning algorithm uses a state value function which is updated each time-step as follows:
+
+V(s) ← V(s) + α[reward + γV(s′) − V(s)]
+
+I'm also working on implementing an n-step and TD(Lambda) algorithms.
 
 
 ## Tic-Tac-Toe Example
 
-The file [`tictactoe.py`](tictactoe.py) contains classes which inherit from the above:
+The file [`tictactoe.py`](tictactoe.py) contains classes which inherit from `Environment` and `Player`:
 
 - `TicTacToeGame` - the game environment (dynamics)
 - `TicTacToeExpert` - computer algorithm which plays optimally - should be unbeatable [according to wikipedia](https://en.wikipedia.org/wiki/Tic-tac-toe#Strategy)

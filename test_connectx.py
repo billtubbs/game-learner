@@ -7,14 +7,9 @@ import unittest
 import numpy as np
 from numpy.testing import assert_array_equal
 
-<<<<<<< HEAD
 from gamelearner import GameController, RandomPlayer
-from connectx import Connect4, Connect4BasicPlayer, \
+from connectx import Connect4Game, Connect4BasicPlayer, \
                      wins_from_next_move, check_for_obvious_move
-=======
-from connectx import Connect4Game, wins_from_next_move
-from gamelearner import RandomPlayer, GameController
->>>>>>> bt-dev
 #from gamelearner import train_computer_players
 
 
@@ -467,7 +462,7 @@ class TestConnectX(unittest.TestCase):
         ], dtype='int8')
         assert_array_equal(ctrl.game.state, final_state)
         self.assertEqual(game.winner, 1)
-        
+
 
     def test_Connect4BasicPlayer(self):
 

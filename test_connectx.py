@@ -414,8 +414,6 @@ class TestConnectX(unittest.TestCase):
         self.assertTrue(game.game_over)
         self.assertEqual(game.winner, None)
 
-<<<<<<< HEAD
-=======
     def test_with_GameController(self):
 
         game = Connect4Game()
@@ -427,7 +425,6 @@ class TestConnectX(unittest.TestCase):
         ctrl.play(show=False)
         self.assertTrue(game.game_over)
 
->>>>>>> bt-dev
     # def test_generate_state_key(self):
     #     """Test generate_state_key method of TicTacToeGame.
     #     """

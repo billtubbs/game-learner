@@ -9,19 +9,19 @@ import itertools
 from gamelearner import Environment, Player
 
 
-class Connect4(Environment):
+class Connect4Game(Environment):
     """Simulates a game of Connect 4.
 
     Class attributes:
-        Connect4.name (str): The game's name ('Connect 4').
-        Connect4.shape (int): Width and height of board (6, 7).
+        Connect4Game.name (str): The game's name ('Connect 4').
+        Connect4Game.shape (int): Width and height of board (6, 7).
         roles [int, int]: The player roles ([1, 2]).
-        Connect4.possible_n_players (list): List of allowed
+        Connect4Game.possible_n_players (list): List of allowed
             numbers of players ([2]).
-        Connect4.marks (list): The characters used to represent
+        Connect4Game.marks (list): The characters used to represent
             each role's move on the board (['S', 'O']).
-        Connect4.connect (int): Number of discs in a row to win (4).
-        Connect4.help_text (dict): Various messages (strings)
+        Connect4Game.connect (int): Number of discs in a row to win (4).
+        Connect4Game.help_text (dict): Various messages (strings)
             to help user.
     """
 
@@ -55,7 +55,7 @@ class Connect4(Environment):
 
     # Function used by _check_positions method
     _fcum = lambda x1, x2: (x1 + x2)*x2
-    
+
     def __init__(self, moves=None):
         """Initialize a game.
         Args:
@@ -128,14 +128,14 @@ class Connect4(Environment):
             spaces_left = self._fill_levels < self.shape[0]
         else:
             spaces_left = self._get_fill_levels(state) < self.shape[0]
-        
+
         return np.nonzero(spaces_left)[0]
 
     def _get_neighbours(self, pos, board_full=None):
         #TODO: Is this method actually used?
         if board_full is None:
             board_full = self._board_full
-        neighbours = {d: board_full[(step[0]+pos[0], step[1]+pos[1])] 
+        neighbours = {d: board_full[(step[0]+pos[0], step[1]+pos[1])]
                       for d, step in self._steps.items()}
         return neighbours
 
@@ -175,7 +175,7 @@ class Connect4(Environment):
         assert level < self.shape[0]
         position = (level+1, column+1)
         assert board_full[position] == 0
-        return self._check_game_state_from_position(position, role, 
+        return self._check_game_state_from_position(position, role,
                                                     board_full=board_full)
 
     @staticmethod
@@ -197,11 +197,11 @@ class Connect4(Environment):
         diagonals = [np.diagonal(positions, offset=k) for k in range(-2, 4)]
         max_diag = max(max(itertools.accumulate(x, _fcum)) for x in diagonals)
         return max(max_horiz, max_vert, max_diag) >= connect
-    
+
     def _check_game_state_for_winner(self, state, role=None):
 
         # If role specified, only check for a win by role
-        roles = self.roles if role is None else [role]  
+        roles = self.roles if role is None else [role]
 
         # Check whole state
         winner = None
@@ -265,14 +265,14 @@ class Connect4(Environment):
 
     def next_state(self, state, move, role_check=True):
         """Returns the next state of the game when move is
-        taken from current game state or from state if 
+        taken from current game state or from state if
         provided.
-        
+
         Args:
             state (np.ndarray): Array (shape (6, 7)) of board state
-                or if not provided the current game state will be 
+                or if not provided the current game state will be
                 used.
-            move (tuple): Tuple of length 2 containing the player 
+            move (tuple): Tuple of length 2 containing the player
                 role and the move (role, position). Position is also
                 a tuple (row, col).
             role_check (bool): If True, checks to make sure it is role's
@@ -308,9 +308,16 @@ class Connect4(Environment):
         """
         position = move[1]
         fill_level = self._fill_levels[position]
+        self._pos_before_last = self._pos_last
         self._pos_last = (fill_level, position)
-        super().make_move(move, show)
-        self._fill_levels[position] = self._fill_levels[position] + 1
+        try:
+            super().make_move(move, show)
+        except ValueError as err:
+            # If error raised (e.g. not players turn) need
+            # to reverse assignment to self._pos_last
+            self._pos_last = self._pos_before_last
+            raise err
+        self._fill_levels[position] += 1
         self.turn = next(self.player_iterator)
 
     def reverse_move(self, show=False):
@@ -319,11 +326,17 @@ class Connect4(Environment):
         Args:
             show (bool): Print a message if True.
         """
-
         self.moves.pop()
         self.state[self._pos_last] = 0  # Removes last disc from board
-        self._fill_levels = self._get_fill_levels(self.state)
-        self.turn = next(self.player_iterator)  # TODO: Only works for 2 player games!
+        self._fill_levels[self._pos_last[1]] -= 1
+        if len(self.moves) > 0:
+            last_position = self.moves[-1][1]
+            self._pos_last = (self._fill_levels[last_position] - 1,
+                              last_position)
+        else:
+            self._pos_last = None
+        # TODO: This only works for 2 player games:
+        self.turn = next(self.player_iterator)
         self.check_if_game_over()
 
     def get_rewards(self):
@@ -373,7 +386,7 @@ def wins_from_next_move(game, role, board_full=None, moves=None):
         board_full = game._board_full
         state = game.state
     else:
-        state = game.state_from_board_full(board_full)  
+        state = game.state_from_board_full(board_full)
     if moves is None:
         moves = game.available_moves(state)
     wins = {}
@@ -583,7 +596,7 @@ class Connect4BasicPlayer(Player):
         return move
 
 
-# def test_player(player, game=Connect4, seed=1):
+# def test_player(player, game=Connect4Game, seed=1):
 #     """
 #     Calculates a score based on the player's performance playing 100
 #     games of Connect4, 50 against a random player and 50 against

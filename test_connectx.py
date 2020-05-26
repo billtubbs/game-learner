@@ -442,7 +442,7 @@ class TestConnectX(unittest.TestCase):
 
     def test_with_players(self):
 
-        game = Connect4()
+        game = Connect4Game()
         player1 = RandomPlayer(seed=1)
         player2 = RandomPlayer(seed=1)
         players = [player1, player2]
@@ -464,7 +464,7 @@ class TestConnectX(unittest.TestCase):
     def test_Connect4BasicPlayer(self):
 
         results = []
-        game = Connect4()
+        game = Connect4Game()
         basic_player1 = Connect4BasicPlayer("P1", seed=1)
         basic_player2 = Connect4BasicPlayer("P2", seed=1)
         random_player = RandomPlayer(seed=1)
@@ -679,7 +679,7 @@ class TestAnalysisFunctions(unittest.TestCase):
         # _ _ X X X _ O
         # _ O X X O _ O
         # but depth 3 search needed to realise that
-        game = Connect4()
+        game = Connect4Game()
         game.state[:] = np.array([
             [0, 0, 1, 1, 2, 0, 2],
             [0, 0, 1, 1, 1, 0, 2],

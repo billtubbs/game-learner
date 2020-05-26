@@ -96,11 +96,12 @@ class Connect4Game(Environment):
         """Set the state of the game back to the beginning
         (no moves made).
         """
-
         super().reset()
+        self._board_full, self._state = self._empty_board_state()
+        self._fill_levels = np.zeros(self.shape[1], dtype='int8')
+        self._pos_last = None
         self.player_iterator = itertools.cycle(self.roles)
         self.turn = next(self.player_iterator)
-        self._board_full, self.state = self._empty_board_state()
         self.winner = None
 
     def show_state(self):
@@ -398,17 +399,17 @@ def wins_from_next_move(game, role, board_full=None, moves=None):
     return wins
 
 
-def check_for_obvious_move(game, role, board_full=None, state=None, 
+def check_for_obvious_move(game, role, board_full=None, state=None,
                            fill_levels=None,
                            terminal_values={'win': 1, 'loss': -1, 'draw':0},
                            depth=1):
     """Analyses the current board state (or board_full if
     provided) from the perspective of the player role.
-    
+
     Returns
         value, positions (float, list): value of the current
-            state if it is a terminal state (from terminal_values) 
-            else None, and a list of best positions (columns) to 
+            state if it is a terminal state (from terminal_values)
+            else None, and a list of best positions (columns) to
             play on next move.
     """
     if board_full is None:
@@ -424,11 +425,11 @@ def check_for_obvious_move(game, role, board_full=None, state=None,
     # (This function should not be called in this case)
     if fill_levels.sum() == game.shape[0]*game.shape[1]:
         raise ValueError("No available moves")
-    
+
     opponent = role ^ 3
-    win_value, loss_value = (terminal_values['win'], 
+    win_value, loss_value = (terminal_values['win'],
                                 terminal_values['loss'])
-    
+
     # TODO: This should not be in this func
     # 0. Check if early move of game
     #if n_moves == 0:
@@ -447,7 +448,7 @@ def check_for_obvious_move(game, role, board_full=None, state=None,
         # 2. Check if draw (last move but no win)
         if fill_levels.sum() == game.shape[0]*game.shape[1] - 1:
             return terminal_values['draw'], list(possible_moves.keys())
-    
+
     #TODO: Could continue deeper search if only one move possible
     if depth > 0:
         # 3. Check what opponent could do next for each possible move
@@ -463,7 +464,7 @@ def check_for_obvious_move(game, role, board_full=None, state=None,
             state[fill_levels[col], col] = role  # Next state after move
             fill_levels[col] += 1
             value, moves = check_for_obvious_move(game, opponent, board_full=bf2,
-                                                  state=state, 
+                                                  state=state,
                                                   fill_levels=fill_levels,
                                                   depth=depth-1)
             opp_move_values[col] = value
@@ -581,7 +582,7 @@ class Connect4BasicPlayer(Player):
 
         move_format = game.help_text['Move format']
 
-        value, moves = check_for_obvious_move(game, role, board_full=None, 
+        value, moves = check_for_obvious_move(game, role, board_full=None,
                                        depth=self.depth)
 
         if len(game.moves) > 0:

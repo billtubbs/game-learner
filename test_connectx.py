@@ -413,6 +413,7 @@ class TestConnectX(unittest.TestCase):
         self.assertEqual(len(game.moves), len(moves))
         self.assertTrue(game.game_over)
         self.assertEqual(game.winner, None)
+        #TODO: Need to test game.reset() method
 
     def test_with_GameController(self):
 

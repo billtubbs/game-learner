@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from connectx import Connect4, wins_from_next_move
+from connectx import Connect4Game, wins_from_next_move
 from gamelearner import RandomPlayer, GameController
 #from gamelearner import train_computer_players
 
@@ -23,7 +23,7 @@ class TestConnectX(unittest.TestCase):
             (1, 6), (2, 2), (1, 4), (2, 4), (1, 4),
             (2, 4), (1, 1)
         ]
-        game = Connect4(moves=moves)
+        game = Connect4Game(moves=moves)
         directions = ['u', 'd', 'r', 'l', 'ur', 'dr', 'ul', 'dl']
         self.assertEqual(list(game._steps.keys()), directions)
 
@@ -112,8 +112,8 @@ class TestConnectX(unittest.TestCase):
         )
 
     def test_check_positions(self):
-        
-        game = Connect4()
+
+        game = Connect4Game()
         state = np.array([
             [2, 1, 2, 1, 0, 2, 2],
             [1, 2, 1, 2, 2, 1, 0],
@@ -128,10 +128,10 @@ class TestConnectX(unittest.TestCase):
         positions = (state == 2).astype('int8')
         connect = game._check_positions(positions)
         self.assertFalse(connect)
-    
+
     def test_available_moves(self):
 
-        game = Connect4()
+        game = Connect4Game()
         state = game.state.copy()
 
         state[:] = np.zeros(game.shape, dtype='int8')
@@ -162,7 +162,7 @@ class TestConnectX(unittest.TestCase):
 
     def test_check_game_state(self):
 
-        game = Connect4(moves=None)
+        game = Connect4Game(moves=None)
         state = np.zeros(game.shape)
         assert game.check_game_state(state) == (False, None)
 
@@ -219,7 +219,7 @@ class TestConnectX(unittest.TestCase):
         various attributes and methods.
         """
 
-        game = Connect4()
+        game = Connect4Game()
         self.assertEqual(game.name, 'Connect 4')
         self.assertEqual(game.connect, 4)
         self.assertEqual(game.roles, [1, 2])
@@ -236,6 +236,8 @@ class TestConnectX(unittest.TestCase):
         game.make_move((1, 0))
 
         # Check game attributes
+        self.assertEqual(game.moves, [(1, 0)])
+        self.assertEqual(game._pos_last, (0, 0))
         assert_array_equal(game._fill_levels,
                            np.array([1, 0, 0, 0, 0, 0, 0]))
         self.assertFalse(game.game_over)
@@ -244,6 +246,8 @@ class TestConnectX(unittest.TestCase):
 
         game.make_move((2, 1))
 
+        self.assertEqual(game.moves, [(1, 0), (2, 1)])
+        self.assertEqual(game._pos_last, (0, 1))
         assert_array_equal(game._fill_levels,
                            np.array([1, 1, 0, 0, 0, 0, 0]))
         self.assertFalse(game.game_over)
@@ -290,12 +294,12 @@ class TestConnectX(unittest.TestCase):
 
         self.assertEqual(game.turn, 1)
         assert_array_equal(
-            np.array(game.available_moves()), 
+            np.array(game.available_moves()),
             np.array([0, 1, 2, 3, 4, 5, 6])
         )
 
         # Initialize game from same state
-        game = Connect4(moves=moves)
+        game = Connect4Game(moves=moves)
         assert_array_equal(game.state, test_state)
         self.assertFalse(game.game_over)
         self.assertEqual(game.winner, None)
@@ -304,7 +308,7 @@ class TestConnectX(unittest.TestCase):
         game.make_move((1, 6))
 
         assert_array_equal(
-            game.state, 
+            game.state,
             np.array([
                 [1, 2, 1, 0, 0, 0, 1],
                 [2, 0, 0, 0, 0, 0, 0],
@@ -325,11 +329,8 @@ class TestConnectX(unittest.TestCase):
         assert_array_equal(game._fill_levels, test_fill_levels)
 
         # Test new game with existing moves
-        moves = [
-            (1, 0), (2, 1), (1, 0), (2, 1),
-            (1, 0), (2, 1)
-        ]
-        game = Connect4(moves=moves)
+        moves = [(1, 0), (2, 1), (1, 0), (2, 1), (1, 0), (2, 1)]
+        game = Connect4Game(moves=moves)
         assert_array_equal(game.moves, moves)
         self.assertEqual(game.check_game_state(), (False, None))
         game.make_move((1, 0))
@@ -343,18 +344,11 @@ class TestConnectX(unittest.TestCase):
             rewards, {1: game.terminal_rewards['win'],
                       2: game.terminal_rewards['lose']}
         )
-
         self.assertEqual(game._pos_last, (3, 0))
 
+        # Test reversing last move
         game.reverse_move()
-        assert_array_equal(
-            game.moves,
-            [
-                (1, 0), (2, 1), (1, 0), (2, 1),
-                (1, 0), (2, 1)
-            ]
-        )
-
+        assert_array_equal(game.moves, moves)
         assert_array_equal(
             game.state,
             np.array([
@@ -366,15 +360,22 @@ class TestConnectX(unittest.TestCase):
                 [0, 0, 0, 0, 0, 0, 0]
             ])
         )
-        
-        # self.assertTrue(np.array_equal(game.state, state))
-        self.assertTrue(game.winner is None)
 
+        self.assertTrue(game.winner is None)
         with self.assertRaises(ValueError) as context:
             game.make_move((2, 1))
         self.assertTrue("It is not player 2's turn." in str(context.exception))
 
-        # Make more moves until game ends
+        # Reverse all moves
+        while len(game.moves) > 0:
+            game.reverse_move()
+        assert game.moves == []
+        assert_array_equal(
+            game.state,
+            np.zeros(game.shape, dtype='int8')
+        )
+
+        # Make repeated moves until game ends
         while not game.game_over:
             role = game.turn
             moves = game.available_moves()
@@ -404,7 +405,7 @@ class TestConnectX(unittest.TestCase):
             (1, 2), (2, 0), (1, 5), (2, 6), (1, 6), (2, 6)
         ]
         self.assertEqual(len(moves), game.shape[0]*game.shape[1])
-        game = Connect4()
+        game = Connect4Game()
         for move in moves:
             game.make_move(move)
         self.assertEqual(len(game.moves), len(moves))
@@ -413,7 +414,7 @@ class TestConnectX(unittest.TestCase):
 
     def test_with_GameController(self):
 
-        game = Connect4()
+        game = Connect4Game()
         player1 = RandomPlayer('R1')
         player2 = RandomPlayer('R2')
 
@@ -493,7 +494,7 @@ class TestAnalysisFunctions(unittest.TestCase):
     def test_wins_from_next_move(self):
 
         # Get empty board state
-        game = Connect4()
+        game = Connect4Game()
         board_full, state = game._empty_board_state()
 
         role = 1
